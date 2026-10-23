@@ -36,14 +36,14 @@
 - **后端**：Python 3.11+ / FastAPI / LangGraph / SQLAlchemy 2.0
 - **数据**：PostgreSQL 或 SQLite / Qdrant（文档向量）/ Neo4j（供应链图谱）/ Redis + RQ
 - **模型**：Ollama（默认）、OpenAI、Gemini；Embedding 支持 nomic-embed-text 等
-- **前端**：React 19 + TypeScript + Vite（Phase 5 开始）
+- **前端**：Vue 3 + Vite + JavaScript + Element Plus（M1 起逐步）
 - **可观测**：JSON 日志、请求 ID、prometheus-client + Grafana
 - **部署**：Docker Compose
 
 ## 架构示意
 
 ```
-React SPA（风险看板 / 风险问答 / 供应商图谱 / 复核台 / Benchmark）
+Vue 3 SPA（风险看板 / 风险问答 / 供应商图谱 / 复核台 / Benchmark）
         │ HTTP + SSE（JWT + 组织上下文）
 FastAPI（中间件、鉴权、RBAC、路由）
         │
@@ -100,6 +100,16 @@ curl http://127.0.0.1:8000/api/health/live
 
 把 `.env` 里 `APP_LOG_LEVEL` 改为 `DEBUG` 可以看到健康检查的访问日志。
 
+## 前端
+
+```bash
+cd frontend
+npm install
+npm run dev      # http://localhost:5173
+```
+
+目前前端使用 `src/api/mock.js` 中的占位数据，可完整走通登录、看板、问答、图谱、复核、Benchmark、审计与管理页面；后端接口就绪后逐个替换为真实请求。
+
 ## 项目结构
 
 ```
@@ -121,7 +131,7 @@ app/
 docs/architecture.md    架构、数据模型、工作流、路线图
 tests/                  分层测试（待补）
 ops/                    Prometheus / Grafana 配置（待补）
-web/                    React 前端（待补）
+frontend/               Vue 3 前端（页面与交互完成，数据为 mock）
 ```
 
 ## 开发路线
@@ -130,6 +140,7 @@ web/                    React 前端（待补）
 |---|---|---|
 | Phase 0 | 项目脚手架与依赖 | ✅ |
 | Phase 1 | 配置、日志、数据库、安全、应用初始化 | 🚧 |
+| 前端骨架 | Vue 3 页面与交互（mock 数据） | ✅ |
 | M1 | RBAC + SecureRAG + 固定工作流 + Review Node + 审计 + 基础前端 | ⬜ |
 | M2 | Neo4j 图谱构建 + GraphRAG 多跳影响分析 + 图谱界面 | ⬜ |
 | M3 | Memory + Benchmark + 指标 + Docker + 分层测试 | ⬜ |

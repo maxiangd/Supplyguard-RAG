@@ -12,3 +12,4 @@ data/
 node_modules/
 web/dist/
 .vscode/
+.idea/
