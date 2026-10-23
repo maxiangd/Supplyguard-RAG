@@ -398,7 +398,6 @@ const auditLogs = auditSeed.map((row, index) => {
     time,
     user,
     role,
-    tenant: 'catl',
     action,
     resource,
     result,
@@ -439,16 +438,12 @@ export async function fetchAuditLogs({
   }
 }
 
-const adminTenants = [
-  { tenant_id: 'catl', name: '宁德时代供应链', created_at: '2026-10-01', user_count: 5 },
-]
-
 const adminUsers = [
-  { user_id: 'u-1', username: 'catl_admin', role: 'admin', tenant_id: 'catl', status: 'active' },
-  { user_id: 'u-2', username: 'catl_procurement', role: 'procurement', tenant_id: 'catl', status: 'active' },
-  { user_id: 'u-3', username: 'catl_logistics', role: 'logistics', tenant_id: 'catl', status: 'active' },
-  { user_id: 'u-4', username: 'catl_quality', role: 'quality', tenant_id: 'catl', status: 'active' },
-  { user_id: 'u-5', username: 'catl_finance', role: 'finance', tenant_id: 'catl', status: 'active' },
+  { user_id: 'u-1', username: 'catl_admin', role: 'admin', status: 'active' },
+  { user_id: 'u-2', username: 'catl_procurement', role: 'procurement', status: 'active' },
+  { user_id: 'u-3', username: 'catl_logistics', role: 'logistics', status: 'active' },
+  { user_id: 'u-4', username: 'catl_quality', role: 'quality', status: 'active' },
+  { user_id: 'u-5', username: 'catl_finance', role: 'finance', status: 'active' },
 ]
 
 const adminRoles = [
@@ -477,7 +472,6 @@ const adminLogs = [
 export async function fetchAdminData() {
   await delay(150)
   return {
-    tenants: adminTenants.map((item) => ({ ...item })),
     users: adminUsers.map((item) => ({ ...item })),
     roles: adminRoles.map((item) => ({ ...item })),
     metrics: { ...adminMetrics },
@@ -485,13 +479,12 @@ export async function fetchAdminData() {
   }
 }
 
-export async function createUser({ username, role, tenant_id }) {
+export async function createUser({ username, role }) {
   await delay(200)
   return {
     user_id: `u-${Date.now()}`,
     username,
     role,
-    tenant_id,
     status: 'active',
   }
 }

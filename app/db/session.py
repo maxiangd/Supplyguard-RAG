@@ -21,7 +21,7 @@ class Base(DeclarativeBase):
     """所有 ORM 模型的共同父类。
 
     继承它之后，SQLAlchemy 才能知道「哪些类对应数据库表」。
-    后面的 Tenant、User 等模型都写成 class Xxx(Base)，
+    后面的 User 等模型都写成 class Xxx(Base)，
     表名和字段由模型类里的 mapped_column 声明。
     """
 
@@ -59,7 +59,7 @@ def _build_engine(database_url: str) -> Engine:
 
     if database_url.startswith("sqlite"):
         # SQLite 默认不检查外键！表里声明的 ForeignKey 和 CASCADE
-        # 在 SQLite 上会静默失效（写进不存在的 tenant_id 也不报错）。
+        # 在 SQLite 上会静默失效（写进不存在的外键也不报错）。
         # 必须每建立一条连接就执行一次 PRAGMA 打开检查。
         # 用 event 监听 "connect"，可以保证连接池里每条新连接都设置过。
         @event.listens_for(eng, "connect")

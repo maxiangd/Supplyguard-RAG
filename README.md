@@ -30,7 +30,7 @@
 | 所有用户看到同一批文档 | 向量 payload 带角色权限，检索前过滤 + 检索后复核，越权内容不进入模型上下文 |
 | 只有文档检索 | SecureRAG（文档证据）+ GraphRAG（供应链多跳影响）双通道 |
 | LLM 自主规划，路径不可控 | 固定多节点工作流 + 规则路由，每一步可回溯 |
-| 多轮对话各说各的 | Redis 短期会话 + PostgreSQL 长期记忆，按组织与用户隔离 |
+| 多轮对话各说各的 | Redis 短期会话 + PostgreSQL 长期记忆，按用户隔离 |
 | 回答完就结束 | 结论附证据、可审批、写入审计 |
 | 没有评测 | 内置 Benchmark：检索命中率、越权拦截率、图谱路径命中率 |
 
@@ -60,7 +60,7 @@
 
 ```
 Vue 3 SPA（风险看板 / 风险问答 / 供应商图谱 / 复核台 / Benchmark）
-        │ HTTP + SSE（JWT + 组织上下文）
+        │ HTTP + SSE（JWT 身份上下文）
 FastAPI（中间件、鉴权、RBAC、路由）
         │
 LangGraph 固定工作流
@@ -108,7 +108,7 @@ curl http://127.0.0.1:8000/api/health/live
 
 ### 日志
 
-所有日志以一行 JSON 输出到控制台，自动带 `request_id`、`user`、`tenant_id`：
+所有日志以一行 JSON 输出到控制台，自动带 `request_id`、`user`：
 
 ```json
 {"timestamp":"2026-10-22T14:01:50+00:00","level":"INFO","logger":"app.main","message":"应用已创建","request_id":null,"env":"development"}
@@ -165,7 +165,7 @@ frontend/               Vue 3 前端（页面与交互完成，数据为 mock）
 
 ## 与参考项目的关系
 
-项目基础设施参考 [Complyra](https://github.com/weiguangli-io/complyra)（MIT License）的架构思路（多租户、审批、审计、日志）；图谱模型、风险传导规则与评测方法参考本地只读项目 SentinelSCM（MIT）的设计。代码均为独立重写，不复制参考实现；业务域、SecureRAG、RBAC、Memory 与 Benchmark 为本项目新增设计。
+项目基础设施参考 [Complyra](https://github.com/weiguangli-io/complyra)（MIT License）的架构思路（审批、审计、日志）；图谱模型、风险传导规则与评测方法参考本地只读项目 SentinelSCM（MIT）的设计。代码均为独立重写，不复制参考实现；业务域、SecureRAG、RBAC、Memory 与 Benchmark 为本项目新增设计。
 
 ## 目录约定
 

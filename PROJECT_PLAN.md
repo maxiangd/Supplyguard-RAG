@@ -78,18 +78,17 @@
 ### B. 身份与权限
 
 - [x] bcrypt 密码哈希 + JWT 签发/解析
-- [ ] `api/deps.py`：当前用户、角色校验、组织成员校验
+- [x] `api/deps.py`：当前用户、角色校验
 - [ ] 登录 / 登出 / 刷新
 - [ ] 用户管理（管理员）
-- [ ] 组织管理（管理员）
 - [ ] 角色：`admin` / `procurement` / `logistics` / `quality` / `finance`
-- [ ] 越权测试：伪造组织、跨角色访问
+- [ ] 越权测试：跨角色访问、伪造令牌
 
 ### C. 文档与 SecureRAG
 
 - [ ] 文档上传、校验、存储
 - [ ] 异步摄取：解析、分块、向量化
-- [ ] Qdrant 集合与 payload（`tenant_id`、`allowed_roles`、`sensitivity`）
+- [ ] Qdrant 集合与 payload（`allowed_roles`、`sensitivity`）
 - [ ] 检索前过滤（Qdrant filter）
 - [ ] 检索后复核（Review Node）
 - [ ] 文档列表按权限返回
@@ -142,7 +141,7 @@
 
 ### I. 前端（页面与交互完成，数据为 mock）
 
-- [x] 登录与组织切换（前端占位登录）
+- [x] 登录（真实后端接口）
 - [x] 风险看板
 - [x] 风险问答（工作流进度、引用面板）
 - [x] 供应商图谱
@@ -320,7 +319,7 @@ docs: 更新 M1 进度与接口说明
 |---|---|---|
 | Phase 0 脚手架 | ✅ | Docker/Alembic 待补 |
 | Phase 1 基建 | ✅ | 配置、日志、会话、3 张表、bcrypt+JWT、启动初始化完成 |
-| 身份与权限 | 🚧 | 登录、JWT、用户/租户/角色依赖完成；用户与组织管理接口待补 |
+| 身份与权限 | 🚧 | 登录、JWT、用户/角色依赖完成；用户管理接口待补 |
 | 文档与 SecureRAG | ⬜ | M1 |
 | 固定工作流 | ⬜ | M1 |
 | 审批与审计 | ⬜ | M1 |
@@ -335,10 +334,10 @@ docs: 更新 M1 进度与接口说明
 ## 12. 接下来的任务顺序
 
 1. `core/security.py`：bcrypt + JWT
-2. `db/audit_db.py`：`init_db` + 默认组织 / 管理员种子
+2. `db/init_db.py`：`init_db` + 演示账号种子
 3. `main.py` 收尾：lifespan、CORS、安全响应头
 4. `models/schemas.py` + `api/deps.py`：登录、当前用户、角色校验
-5. 用户 / 组织管理接口
+5. 用户管理接口
 6. 文档表、上传与摄取队列
 7. Qdrant 集合、payload、检索过滤
 8. Review Node 与越权测试

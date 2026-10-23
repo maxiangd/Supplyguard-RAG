@@ -37,7 +37,6 @@ class TokenPayload:
 
     user_id: str            # 用户唯一 ID，对应 users.user_id
     role: str | None        # 角色；令牌里没写时为 None
-    tenant_id: str | None   # 当前租户；登录时还没选组织时为 None
     expires_at: datetime    # 过期时间（UTC）
 
 
@@ -105,14 +104,13 @@ def create_access_token(
     user_id: str,
     *,
     role: str | None = None,
-    tenant_id: str | None = None,
     expires_minutes: int | None = None,
 ) -> str:
     """签发 JWT 访问令牌。
 
     参数：
         user_id：用户 ID，写进标准字段 sub。
-        role / tenant_id：可选的当前身份信息。
+        role：可选的角色声明。
         expires_minutes：有效期（分钟），不传则用配置里的默认值。
     返回：三段式 JWT 字符串。
     """
@@ -131,11 +129,9 @@ def create_access_token(
         "exp": now + timedelta(minutes=minutes),  # 过期时间，decode 时自动校验
     }
 
-    # 可选字段：没有就不写，避免写入假的 tenant_id
+    # 可选字段：没有就不写
     if role is not None:
         payload["role"] = role
-    if tenant_id is not None:
-        payload["tenant_id"] = tenant_id
 
     return jwt.encode(
         payload,
@@ -172,12 +168,10 @@ def decode_access_token(token: str) -> TokenPayload:
         raise TokenError("令牌缺少过期时间")
 
     role = claims.get("role")
-    tenant_id = claims.get("tenant_id")
 
     return TokenPayload(
         user_id=user_id,
         # 类型检查防止伪造出 role=["admin"] 这类意外结构
         role=role if isinstance(role, str) else None,
-        tenant_id=tenant_id if isinstance(tenant_id, str) else None,
         expires_at=datetime.fromtimestamp(exp, UTC),
     )

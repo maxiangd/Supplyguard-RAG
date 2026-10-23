@@ -8,13 +8,9 @@ const client = axios.create({
 client.interceptors.request.use((config) => {
   // 从 localStorage 读取，避免与 Pinia store 形成循环依赖
   const token = localStorage.getItem('token')
-  const tenantId = localStorage.getItem('tenant_id')
 
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
-  }
-  if (tenantId) {
-    config.headers['X-Tenant-ID'] = tenantId
   }
   return config
 })

@@ -32,9 +32,9 @@ SupplyGuard 面向采购、物流、质量、财务等多角色，在 RBAC 权�
 | `logistics`（物流） | 运输中断、港口拥堵 | 上海港停运会影响哪些在途订单？ |
 | `quality`（质量） | 质量事故、召回 | 这批来料的质量异常关联哪些供应商与工厂？ |
 | `finance`（财务） | 信用风险、付款风险 | 某供应商财务状况恶化，相关合同风险有多大？ |
-| `admin`（管理员） | 组织、用户、策略、监控 | 管理权限、审批规则、查看审计 |
+| `admin`（管理员） | 用户、策略、监控 | 管理权限、审批规则、查看审计 |
 
-多租户在本项目中表示「企业 / 组织」：不同企业的供应商、文档、风险记录互相隔离。当前代码中的 `tenant_id` 即组织标识。
+本项目面向单一企业（演示主体为宁德时代供应链），不引入多租户。数据隔离只按**角色**：同一份数据，不同角色能看到的内容和可执行的操作不同。
 
 ### 非目标
 
@@ -49,7 +49,7 @@ SupplyGuard 面向采购、物流、质量、财务等多角色，在 RBAC 权�
 │ Vue 3 SPA                                                    │
 │ 风险看板 / 风险问答 / 供应商图谱 / 复核台 / Benchmark / 审计     │
 └───────────────────────┬──────────────────────────────────────┘
-                        │ HTTP + SSE（JWT + 组织上下文）
+                        │ HTTP + SSE（JWT 身份上下文）
 ┌───────────────────────▼──────────────────────────────────────┐
 │ FastAPI（中间件、鉴权、RBAC、路由）                             │
 └──────────┬───────────────────────────────┬───────────────────┘
@@ -82,7 +82,7 @@ SupplyGuard 面向采购、物流、质量、财务等多角色，在 RBAC 权�
 └──────────────────────────┬──────────────────────────────────┘
                            │
 ┌──────────────────────────▼──────────────────────────────────┐
-│ api/deps.py        鉴权依赖：当前用户、角色、组织成员          │
+│ api/deps.py        鉴权依赖：当前用户、角色                      │
 │ core/security.py   JWT 与密码哈希                            │
 └──────────────────────────┬──────────────────────────────────┘
                            │
@@ -128,14 +128,14 @@ main.py
 POST /api/risks/query
   → RequestID / RequestLogging 中间件
   → api/deps.py
-       校验 JWT → 校验组织成员 → 得到 user / role / tenant
+       校验 JWT → 加载用户 → 得到 user / role
   → services/workflow.py
        intake
          → classify（规则；LLM 仅兜底）
          → plan（按角色和问题类型选节点）
          → secure_retrieve
               → services/retrieval.py
-                   Qdrant filter: tenant_id + allowed_roles
+                   Qdrant filter: allowed_roles
          → graph_impact（可选）
               → services/graph.py
                    Neo4j 多跳查询
@@ -157,8 +157,8 @@ POST /api/risks/query
 
 | 存储 | 存什么 | 谁访问 |
 |---|---|---|
-| PostgreSQL / SQLite | 组织、用户、供应商、物料、文档元数据、审批、审计、记忆 | `db/`、`services/*` |
-| Qdrant | 文档分块向量 + `tenant_id` / `allowed_roles` | `services/retrieval.py` |
+| PostgreSQL / SQLite | 用户、供应商、物料、文档元数据、审批、审计、记忆 | `db/`、`services/*` |
+| Qdrant | 文档分块向量 + `allowed_roles` / `sensitivity` | `services/retrieval.py` |
 | Neo4j | 供应商、物料、工厂、运输、风险事件及关系 | `services/graph.py` |
 | Redis | 会话短期记忆、RQ 队列、进度缓存 | `services/memory.py`、`services/queue.py` |
 | 本地磁盘 | 上传的原始文件 | `services/ingest.py`、`workers/` |
@@ -207,7 +207,7 @@ intake
 
 | 节点 | 输入 | 输出 | 说明 |
 |---|---|---|---|
-| `intake` | 问题、角色、组织 | 标准化请求 | 写入 request_id、run_id |
+| `intake` | 问题、角色 | 标准化请求 | 写入 request_id、run_id |
 | `classify` | 问题 | 类型、实体（供应商/物料/地点） | 规则优先，记录判定依据 |
 | `plan` | 类型、角色 | 节点序列 | 决定是否做图谱分析 |
 | `secure_retrieve` | 查询、角色 | 授权证据块 | Qdrant payload 过滤 |
@@ -225,7 +225,6 @@ Qdrant 每个 chunk 的 payload：
 
 ```json
 {
-  "tenant_id": "org-acme",
   "document_id": "doc-123",
   "chunk_index": 4,
   "page": 2,
@@ -241,7 +240,6 @@ Qdrant 每个 chunk 的 payload：
 查询时构造 Qdrant filter：
 
 ```
-must:     tenant_id == 当前组织
 must:     allowed_roles match any [当前用户角色]
 可选:     source_type / sensitivity / 时间范围
 ```
@@ -344,7 +342,7 @@ Shipment -[:CARRIES]-> Material
 
 规则：
 
-- 记忆按 `tenant_id + user_id` 隔离；
+- 记忆按 `user_id` 隔离；
 - 不把高敏感文档原文写入记忆，只存摘要与引用；
 - 长期记忆写入前做一次敏感信息检查；
 - 用户可查看与删除自己的长期记忆。
@@ -355,9 +353,7 @@ Shipment -[:CARRIES]-> Material
 
 | 表 | 说明 | 状态 |
 |---|---|---|
-| `tenants` | 组织/企业，隔离根 | ✅ |
 | `users` | 用户、密码哈希、角色 | ✅ |
-| `user_tenants` | 用户与组织多对多 | ✅ |
 
 `users.role` 取值扩展为：`admin` / `procurement` / `logistics` / `quality` / `finance`。
 
@@ -365,25 +361,25 @@ Shipment -[:CARRIES]-> Material
 
 | 表 | 关键字段 |
 |---|---|
-| `suppliers` | supplier_id、tenant_id、name、country、tier、risk_score、is_available |
-| `materials` | material_id、tenant_id、name、sku、criticality、monthly_demand |
-| `factories` | site_id、tenant_id、name、country |
-| `warehouses` | site_id、tenant_id、name、country |
-| `ports` | port_id、tenant_id、name、country |
-| `regions` | region_id、tenant_id、name |
-| `shipping_routes` | route_id、tenant_id、origin_port_id、dest_port_id、transit_days_normal/current、is_disrupted、disruption_type |
-| `shipments` | shipment_id、tenant_id、supplier_id、material_id、origin_port_id、dest_port_id、status、eta、quantity |
-| `disruption_events` | event_id、tenant_id、name、type、severity、start/end、is_active、description |
+| `suppliers` | supplier_id、name、country、tier、risk_score、is_available |
+| `materials` | material_id、name、sku、criticality、monthly_demand |
+| `factories` | site_id、name、country |
+| `warehouses` | site_id、name、country |
+| `ports` | port_id、name、country |
+| `regions` | region_id、name |
+| `shipping_routes` | route_id、origin_port_id、dest_port_id、transit_days_normal/current、is_disrupted、disruption_type |
+| `shipments` | shipment_id、supplier_id、material_id、origin_port_id、dest_port_id、status、eta、quantity |
+| `disruption_events` | event_id、name、type、severity、start/end、is_active、description |
 | `supplier_materials` | supplier_id、material_id、share、is_primary |
-| `documents` | document_id、tenant_id、filename、source_type、sensitivity、status、allowed_roles（同步写入 Qdrant） |
-| `ingest_jobs` | job_id、tenant_id、status、progress、error |
-| `conversations` | session_id、tenant_id、user_id、created_at |
+| `documents` | document_id、filename、source_type、sensitivity、status、allowed_roles（同步写入 Qdrant） |
+| `ingest_jobs` | job_id、status、progress、error |
+| `conversations` | session_id、user_id、created_at |
 | `messages` | message_id、session_id、role、content、cited_docs、created_at |
-| `memory_facts` | fact_id、tenant_id、user_id、kind、content、source、confidence |
-| `approvals` | approval_id、tenant_id、run_id、status、decided_by、note |
-| `audit_logs` | 只追加：timestamp、tenant_id、user、action、input/output、metadata |
-| `tenant_policies` | approval_mode、risk_threshold、updated_by |
-| `benchmark_cases` | case_id、tenant_id、role、question、expected_suppliers、expected_paths、forbidden_docs |
+| `memory_facts` | fact_id、user_id、kind、content、source、confidence |
+| `approvals` | approval_id、run_id、status、decided_by、note |
+| `audit_logs` | 只追加：timestamp、user、action、input/output、metadata |
+| `policies` | approval_mode、risk_threshold、updated_by |
+| `benchmark_cases` | case_id、role、question、expected_suppliers、expected_paths、forbidden_docs |
 | `benchmark_runs` | run_id、case_set、metrics_json、created_at |
 
 > 图关系存 Neo4j，PostgreSQL 保留实体主数据；两边通过业务 ID 对应。
@@ -415,21 +411,21 @@ SSE 事件：`run_started`、`classify_done`、`retrieve_done`、`graph_done`、
 
 | 页面 | 功能 |
 |---|---|
-| 登录 | 账号密码、组织选择、角色展示 |
+| 登录 | 账号密码、角色展示 |
 | 风险看板 | 高风险供应商、风险事件、待审批数量 |
 | 风险问答 | 提问、工作流进度、引用面板、图谱路径展示 |
 | 供应商图谱 | 节点搜索、多跳路径高亮、风险事件叠加 |
 | 复核台 | 待复核结论、证据、通过/驳回 |
 | Benchmark | 用例管理、运行评测、指标对比 |
 | 审计 | 条件搜索、分页、CSV 导出 |
-| 管理 | 组织、用户、角色、策略、监控 |
+| 管理 | 用户、角色、策略、监控 |
 
 ## 11. 可观测与安全
 
 - 日志：JSON + `request_id`，工作流追加 `run_id`，不记录文档原文与完整证据；
 - 指标：查询量、各节点耗时、LLM 调用、越权拦截数、审批积压、Benchmark 指标；
-- 安全：上传白名单与大小限制、路径清洗、租户与角色双重过滤、Prompt 注入防护、审计导出公式转义；
-- 权限：接口级 RBAC + 数据级过滤，跨组织统一返回 403，不泄露资源是否存在。
+- 安全：上传白名单与大小限制、路径清洗、角色过滤、Prompt 注入防护、审计导出公式转义；
+- 权限：接口级 RBAC + 数据级过滤，越权统一返回 403，不泄露资源是否存在。
 
 ## 12. 实施路线与验收
 
@@ -437,16 +433,17 @@ SSE 事件：`run_started`、`classify_done`、`retrieve_done`、`graph_done`、
 - 依赖、配置、`.gitignore`、本地虚拟环境
 - 待补：Docker、Alembic
 
-### Phase 1 后端基建 🚧
+### Phase 1 后端基建 ✅
 - [x] 配置
 - [x] 日志（4/5，`log_buffer` 待监控页）
 - [x] 数据库会话
-- [x] `tenants` / `users` / `user_tenants`
-- [ ] 安全（bcrypt + JWT）
-- [ ] `audit_db`、初始化种子
-- [ ] 指标、安全响应头、应用初始化收尾
+- [x] `users` 表
+- [x] 安全（bcrypt + JWT）
+- [x] `init_db`、演示账号种子
+- [x] 应用初始化（lifespan、CORS）
+- [ ] 指标、安全响应头
 
-**验收**：启动自动建表、生成默认组织与管理员；请求日志带 request_id。
+**验收**：启动自动建表、生成演示账号；请求日志带 request_id。
 
 ### M1 SecureRAG + 固定工作流
 - RBAC 依赖与角色校验
@@ -491,7 +488,7 @@ M1–M3    ⬜
 | 权限越权 | 双层过滤 + Review Node + 越权用例测试 |
 | LLM 判定不稳定 | 规则路由 + 结构化输出 + 人工审批兜底 |
 | Benchmark 数字不可信 | 用例与脚本入库，指标可复现 |
-| 记忆泄露 | 按用户/组织隔离，只存摘要，写入前敏感检查 |
+| 记忆泄露 | 按用户隔离，只存摘要，写入前敏感检查 |
 
 ## 15. 新增配置项（草案）
 
@@ -552,7 +549,7 @@ APP_BENCHMARK_REQUIRE_ZERO_LEAK=true
 
 SupplyGuard 的增量正是这四点：
 
-- 组织级隔离 + RBAC
+- 认证 + 接口级/数据级 RBAC
 - SecureRAG：文档级权限元数据 + 检索后复核
 - 持久化审批单与只追加审计
 - 文档、图谱、结构化数据三类输入连接

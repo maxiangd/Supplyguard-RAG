@@ -1,12 +1,11 @@
-"""FastAPI 依赖：从请求中解析当前用户与租户上下文。"""
+"""FastAPI 依赖：从请求中解析当前用户。"""
 
-from fastapi import Depends, Header, HTTPException, status
+from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.security import TokenError, TokenPayload, decode_access_token
-from app.db.models import User, UserTenant
+from app.db.models import User
 from app.db.session import get_db
 
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -31,7 +30,7 @@ def get_current_payload(
     """解析 Authorization 头中的 JWT。
 
     参数：credentials —— HTTPBearer 解析出的凭证，未提供时为 None。
-    返回：TokenPayload，包含 user_id、role、tenant_id 与过期时间。
+    返回：TokenPayload，包含 user_id、role 与过期时间。
     异常：401 —— 未提供令牌、签名错误、已过期或格式非法。
     """
     if credentials is None:
@@ -59,46 +58,6 @@ def get_current_user(
     if user is None:
         raise _unauthorized("用户不存在或已被删除")
     return user
-
-
-def get_current_tenant_id(
-    payload: TokenPayload = Depends(get_current_payload),
-    user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-    header_tenant_id: str | None = Header(default=None, alias="X-Tenant-ID"),
-) -> str:
-    """确定并校验当前租户。
-
-    优先级：X-Tenant-ID 请求头 > 令牌中的租户 > 用户默认租户。
-    参数：
-        payload —— 令牌内容。
-        user —— 当前用户。
-        db —— 数据库会话。
-        header_tenant_id —— 前端切换租户时携带的请求头。
-    返回：经过成员关系校验的租户 ID。
-    异常：
-        400 —— 无法确定租户。
-        403 —— 用户不是该租户成员。
-    """
-    tenant_id = header_tenant_id or payload.tenant_id or user.default_tenant_id
-    if not tenant_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="未指定租户",
-        )
-
-    member = db.scalar(
-        select(UserTenant).where(
-            UserTenant.user_id == user.user_id,
-            UserTenant.tenant_id == tenant_id,
-        )
-    )
-    if member is None:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="无权访问该租户",
-        )
-    return tenant_id
 
 
 def require_roles(*roles: str):

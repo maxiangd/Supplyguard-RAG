@@ -10,7 +10,6 @@ function readUser() {
 export const useAuthStore = defineStore('auth', () => {
   const token = ref(localStorage.getItem('token') || '')
   const user = ref(readUser())
-  const tenantId = ref(localStorage.getItem('tenant_id') || '')
 
   const isLoggedIn = computed(() => Boolean(token.value))
   const role = computed(() => user.value?.role ?? '')
@@ -20,11 +19,9 @@ export const useAuthStore = defineStore('auth', () => {
 
     token.value = data.access_token
     user.value = data.user
-    tenantId.value = data.tenant_id
 
     localStorage.setItem('token', data.access_token)
     localStorage.setItem('user', JSON.stringify(data.user))
-    localStorage.setItem('tenant_id', data.tenant_id)
   }
 
   async function fetchMe() {
@@ -36,12 +33,10 @@ export const useAuthStore = defineStore('auth', () => {
   function logout() {
     token.value = ''
     user.value = null
-    tenantId.value = ''
 
     localStorage.removeItem('token')
     localStorage.removeItem('user')
-    localStorage.removeItem('tenant_id')
   }
 
-  return { token, user, tenantId, isLoggedIn, role, login, fetchMe, logout }
+  return { token, user, isLoggedIn, role, login, fetchMe, logout }
 })

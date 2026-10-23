@@ -88,7 +88,7 @@ async function exportCsv() {
     keyword: filters.keyword.trim(),
     range: filters.range ?? [],
   })
-  const header = ['时间', '用户', '角色', '租户', '动作', '资源', '结果', 'request_id']
+  const header = ['时间', '用户', '角色', '动作', '资源', '结果', 'request_id']
   const lines = [header.join(',')]
   for (const log of data.items) {
     lines.push(
@@ -96,7 +96,6 @@ async function exportCsv() {
         log.time,
         log.user,
         roleLabels[log.role] ?? log.role,
-        log.tenant,
         actionLabels[log.action] ?? log.action,
         log.resource,
         resultLabels[log.result] ?? log.result,
@@ -187,7 +186,6 @@ onMounted(load)
           {{ roleLabels[row.role] ?? '未知' }}
         </template>
       </el-table-column>
-      <el-table-column prop="tenant" label="租户" width="90" />
       <el-table-column label="动作" width="100">
         <template #default="{ row }">
           {{ actionLabels[row.action] ?? row.action }}

@@ -4,9 +4,8 @@ import { ElMessage } from 'element-plus'
 import { createUser, fetchAdminData } from '../api/mock'
 
 const loading = ref(true)
-const activeTab = ref('tenants')
+const activeTab = ref('users')
 
-const tenants = ref([])
 const users = ref([])
 const roles = ref([])
 const metrics = ref({})
@@ -16,7 +15,6 @@ const userDialog = ref(false)
 const userForm = reactive({
   username: '',
   role: 'procurement',
-  tenant_id: 'demo',
 })
 
 const roleLabels = {
@@ -30,7 +28,6 @@ const logType = { INFO: 'info', WARNING: 'warning', ERROR: 'danger' }
 
 async function load() {
   const data = await fetchAdminData()
-  tenants.value = data.tenants
   users.value = data.users
   roles.value = data.roles
   metrics.value = data.metrics
@@ -46,7 +43,7 @@ async function addUser() {
   const created = await createUser({ ...userForm })
   users.value.push(created)
   userDialog.value = false
-  Object.assign(userForm, { username: '', role: 'procurement', tenant_id: 'demo' })
+  Object.assign(userForm, { username: '', role: 'procurement' })
   ElMessage.success('用户已创建')
 }
 
@@ -63,15 +60,6 @@ onMounted(load)
 <template>
   <el-card v-loading="loading" shadow="never">
     <el-tabs v-model="activeTab">
-      <el-tab-pane label="公司" name="tenants">
-        <el-table :data="tenants" size="small">
-          <el-table-column prop="tenant_id" label="租户 ID" width="140" />
-          <el-table-column prop="name" label="名称" min-width="180" />
-          <el-table-column prop="created_at" label="创建时间" width="140" />
-          <el-table-column prop="user_count" label="用户数" width="90" />
-        </el-table>
-      </el-tab-pane>
-
       <el-tab-pane label="用户" name="users">
         <div class="toolbar">
           <el-button type="primary" @click="userDialog = true">
@@ -85,7 +73,6 @@ onMounted(load)
               {{ roleLabels[row.role] ?? row.role }}
             </template>
           </el-table-column>
-          <el-table-column prop="tenant_id" label="租户" width="120" />
           <el-table-column label="状态" width="100">
             <template #default="{ row }">
               <el-tag
@@ -184,16 +171,6 @@ onMounted(load)
             :key="value"
             :label="label"
             :value="value"
-          />
-        </el-select>
-      </el-form-item>
-      <el-form-item label="租户">
-        <el-select v-model="userForm.tenant_id" style="width: 100%">
-          <el-option
-            v-for="tenant in tenants"
-            :key="tenant.tenant_id"
-            :label="`${tenant.name}（${tenant.tenant_id}）`"
-            :value="tenant.tenant_id"
           />
         </el-select>
       </el-form-item>

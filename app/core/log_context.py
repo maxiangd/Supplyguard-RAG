@@ -1,4 +1,4 @@
-"""请求上下文：把「当前请求是谁、来自哪个租户、请求 ID 是什么」存进 ContextVar。
+"""请求上下文：把「当前请求是谁、请求 ID 是什么」存进 ContextVar。
 
 为什么需要它？
     日志、审计、错误处理都想知道「这条日志属于哪个请求」，
@@ -25,7 +25,6 @@ from contextvars import ContextVar, Token
 # 用 None 而不是空字符串，是为了让「没有请求上下文」和「请求 ID 恰好为空」可区分。
 _request_id: ContextVar[str | None] = ContextVar("request_id", default=None)
 _user: ContextVar[str | None] = ContextVar("user", default=None)
-_tenant_id: ContextVar[str | None] = ContextVar("tenant_id", default=None)
 
 
 def set_request_id(value: str | None) -> Token:
@@ -69,22 +68,3 @@ def get_user() -> str | None:
 def reset_user(token: Token) -> None:
     """用 set_user() 返回的 token 恢复上下文中的用户值。"""
     _user.reset(token)
-
-
-def set_tenant_id(value: str | None) -> Token:
-    """把当前租户 ID 写入上下文，日志据此区分数据归属。
-
-    多租户系统里排查问题经常需要"只看某个租户"的日志，
-    所以租户要和请求 ID 一样贯穿整个请求。
-    """
-    return _tenant_id.set(value)
-
-
-def get_tenant_id() -> str | None:
-    """读取当前租户 ID；无请求上下文时返回 None。"""
-    return _tenant_id.get()
-
-
-def reset_tenant_id(token: Token) -> None:
-    """用 set_tenant_id() 返回的 token 恢复上下文中的租户值。"""
-    _tenant_id.reset(token)

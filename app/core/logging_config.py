@@ -8,7 +8,7 @@ Python logging 的四个角色（先分清楚，后面 code 才不会乱）：
 
 为什么要输出 JSON？
     线上日志通常被采集系统（Loki / ELK）按字段索引。
-    一行一个 JSON 对象，查 request_id 或 tenant_id 时可以直接按字段过滤，
+    一行一个 JSON 对象，查 request_id 或用户时可以直接按字段过滤，
     不用像文本日志那样写脆弱的正则。
 """
 
@@ -18,7 +18,7 @@ import sys
 from datetime import UTC, datetime
 
 from app.core.config import settings
-from app.core.log_context import get_request_id, get_tenant_id, get_user
+from app.core.log_context import get_request_id, get_user
 
 # LogRecord 自带的内部字段。
 # 格式化时要跳过它们，否则输出里会混进 pathname、thread 等一大堆我们不需要的细节；
@@ -46,11 +46,10 @@ class JsonFormatter(logging.Formatter):
             "logger": record.name,
             # getMessage() 已经完成过 %s 占位符替换，拿到的就是最终文本
             "message": record.getMessage(),
-            # 下面三个值从 ContextVar 读取：
+            # 下面两个值从 ContextVar 读取：
             # 日志在哪个请求里打出来，就自动带上哪个请求的上下文
             "request_id": get_request_id(),
             "user": get_user(),
-            "tenant_id": get_tenant_id(),
         }
 
         # 调用方自定义字段，例如：
