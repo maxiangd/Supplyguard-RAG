@@ -3,7 +3,7 @@
 供应链风险 AgentHarness 平台。在 RBAC 权限约束下，融合 SecureRAG、GraphRAG、Memory 与 LangGraph 固定工作流，为采购、物流、质量、财务等多角色提供**可引用、可审计、可 Benchmark** 的风险洞察与决策支持。
 
 > 当前状态：**开发中（Phase 1）**。登录与前端页面骨架已可运行，风险检索、图谱分析、审批等功能尚未实现。
-> 详细架构与数据模型见 [docs/architecture.md](docs/architecture.md)；执行计划、任务拆分与验收标准见 [PROJECT_PLAN.md](PROJECT_PLAN.md)。
+> 详细架构与数据模型见 [docs/architecture.md](docs/architecture.md)；执行计划、任务拆分与验收标准见 [PROJECT_PLAN.md](PROJECT_PLAN.md)；依赖函数速查见 [docs/library-cheatsheet.md](docs/library-cheatsheet.md)。
 
 ## 演示场景
 
