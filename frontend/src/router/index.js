@@ -25,13 +25,26 @@ const router = createRouter({
   routes,
 })
 
-router.beforeEach((to) => {
+let sessionValidated = false
+
+router.beforeEach(async (to) => {
   const auth = useAuthStore()
+
   if (to.name !== 'login' && !auth.isLoggedIn) {
     return { name: 'login' }
   }
   if (to.name === 'login' && auth.isLoggedIn) {
     return { name: 'dashboard' }
+  }
+
+  // 每次刷新页面后用后端校验一次令牌，清掉历史遗留的无效 token
+  if (to.name !== 'login' && auth.isLoggedIn && !sessionValidated) {
+    try {
+      await auth.fetchMe()
+      sessionValidated = true
+    } catch {
+      return { name: 'login' }
+    }
   }
 })
 

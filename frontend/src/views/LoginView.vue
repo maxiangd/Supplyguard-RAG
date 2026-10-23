@@ -22,10 +22,11 @@ async function handleLogin() {
   loading.value = true
   try {
     await auth.login(form)
-    ElMessage.success('登录成功（前端占位，尚未调用后端）')
+    ElMessage.success('登录成功')
     router.push('/dashboard')
   } catch (error) {
-    ElMessage.error(error.message)
+    const detail = error.response?.data?.detail
+    ElMessage.error(typeof detail === 'string' ? detail : '登录失败，请稍后重试')
   } finally {
     loading.value = false
   }

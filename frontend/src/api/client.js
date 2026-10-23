@@ -1,6 +1,4 @@
 import axios from 'axios'
-import { useAuthStore } from '../stores/auth'
-import router from '../router'
 
 const client = axios.create({
   baseURL: '/api',
@@ -8,20 +6,28 @@ const client = axios.create({
 })
 
 client.interceptors.request.use((config) => {
-  const auth = useAuthStore()
-  if (auth.token) {
-    config.headers.Authorization = `Bearer ${auth.token}`
+  // 从 localStorage 读取，避免与 Pinia store 形成循环依赖
+  const token = localStorage.getItem('token')
+  const tenantId = localStorage.getItem('tenant_id')
+
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
   }
-  if (auth.tenantId) {
-    config.headers['X-Tenant-ID'] = auth.tenantId
+  if (tenantId) {
+    config.headers['X-Tenant-ID'] = tenantId
   }
   return config
 })
 
 client.interceptors.response.use(
   (response) => response.data,
-  (error) => {
+  async (error) => {
     if (error.response?.status === 401) {
+      // 动态导入，避免 client → store/router 的静态循环依赖
+      const [{ useAuthStore }, { default: router }] = await Promise.all([
+        import('../stores/auth'),
+        import('../router'),
+      ])
       useAuthStore().logout()
       router.push({ name: 'login' })
     }

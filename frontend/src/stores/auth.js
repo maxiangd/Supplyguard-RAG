@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-import { mockLogin } from '../api/mock'
+import client from '../api/client'
 
 function readUser() {
   const raw = localStorage.getItem('user')
@@ -16,14 +16,25 @@ export const useAuthStore = defineStore('auth', () => {
   const role = computed(() => user.value?.role ?? '')
 
   async function login({ username, password, tenant }) {
-    const data = await mockLogin({ username, password, tenant })
-    token.value = data.token
+    const data = await client.post('/auth/login', {
+      username,
+      password,
+      tenant_id: tenant || null,
+    })
+
+    token.value = data.access_token
     user.value = data.user
     tenantId.value = data.tenant_id
 
-    localStorage.setItem('token', data.token)
+    localStorage.setItem('token', data.access_token)
     localStorage.setItem('user', JSON.stringify(data.user))
     localStorage.setItem('tenant_id', data.tenant_id)
+  }
+
+  async function fetchMe() {
+    const data = await client.get('/auth/me')
+    user.value = data
+    localStorage.setItem('user', JSON.stringify(data))
   }
 
   function logout() {
@@ -36,5 +47,5 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('tenant_id')
   }
 
-  return { token, user, tenantId, isLoggedIn, role, login, logout }
+  return { token, user, tenantId, isLoggedIn, role, login, fetchMe, logout }
 })
