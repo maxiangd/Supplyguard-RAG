@@ -23,7 +23,9 @@ def _json_sink(message: Any) -> None:
     record = message.record
     source_logger = record["extra"].pop("source_logger", None)
     payload: dict[str, Any] = {
-        "timestamp": record["time"].isoformat(timespec="milliseconds"),
+        "timestamp": record["time"]
+        .replace(tzinfo=None)
+        .isoformat(timespec="milliseconds"),
         "level": record["level"].name,
         "logger": source_logger or record["name"],
         "message": record["message"],
