@@ -1,10 +1,9 @@
-"""日志：loguru 统一输出平铺 JSON，自动带 request_id 与用户。"""
+"""日志：loguru 统一输出平铺 JSON，请求内自动带 request_id。"""
 
 import json
 import logging
 import sys
 import traceback
-from datetime import UTC
 from typing import Any
 
 from loguru import logger
@@ -24,7 +23,7 @@ def _json_sink(message: Any) -> None:
     record = message.record
     source_logger = record["extra"].pop("source_logger", None)
     payload: dict[str, Any] = {
-        "timestamp": record["time"].astimezone(UTC).isoformat(timespec="milliseconds"),
+        "timestamp": record["time"].isoformat(timespec="milliseconds"),
         "level": record["level"].name,
         "logger": source_logger or record["name"],
         "message": record["message"],
