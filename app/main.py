@@ -1,13 +1,29 @@
 import logging
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.core.logging_config import setup_logging
 from app.core.request_id import RequestIDMiddleware
 from app.core.request_logging import RequestLoggingMiddleware
+from app.db.init_db import init_db
 
 logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    """应用生命周期：启动时初始化数据库，关闭时记录日志。
+
+    参数：_app —— FastAPI 注入的应用实例，本函数暂不使用。
+    返回：异步生成器；yield 之前是启动逻辑，之后是关闭逻辑。
+    """
+    init_db()
+    logger.info("数据库初始化完成")
+    yield
+    logger.info("应用已关闭")
 
 
 def create_app() -> FastAPI:
@@ -20,6 +36,7 @@ def create_app() -> FastAPI:
     setup_logging()
 
     app = FastAPI(
+        lifespan=lifespan,
         title=settings.app_name,
         version=settings.app_version,
         description="Supply chain risk AgentHarness with SecureRAG, GraphRAG and RBAC",
@@ -31,6 +48,14 @@ def create_app() -> FastAPI:
     # 这个顺序不能反：RequestLogging 打日志时需要拿到 RequestID 已写好的上下文。
     app.add_middleware(RequestLoggingMiddleware)
     app.add_middleware(RequestIDMiddleware)
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_origin_list,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
     @app.get("/api/health/live", tags=["health"])
     def live() -> dict:
