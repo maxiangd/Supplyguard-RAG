@@ -1,7 +1,7 @@
 """数据库表模型（ORM）。"""
 
 import uuid
-from datetime import UTC, datetime
+from datetime import datetime
 
 from sqlalchemy import DateTime, String
 from sqlalchemy.orm import Mapped, mapped_column
@@ -9,9 +9,9 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.db.session import Base
 
 
-def utcnow_naive() -> datetime:
-    """当前 UTC 时间（不带时区）。"""
-    return datetime.now(UTC).replace(tzinfo=None)
+def now_local() -> datetime:
+    """当前本地时间（不带时区）。"""
+    return datetime.now()
 
 
 def new_uuid() -> str:
@@ -31,5 +31,5 @@ class User(Base):
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     role: Mapped[str] = mapped_column(String(32), nullable=False, default="user")
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=utcnow_naive, nullable=False
+        DateTime, default=now_local, nullable=False
     )
