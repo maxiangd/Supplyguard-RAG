@@ -6,12 +6,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 
-from app.api.routes.auth import router as auth_router
-from app.core.config import settings
-from app.core.logging_config import setup_logging
-from app.core.request_id import RequestIDMiddleware
-from app.core.request_logging import RequestLoggingMiddleware
-from app.db.init_db import init_db
+from app.api.routes.authentication import router as auth_router
+from app.core.configuration import settings
+from app.core.logging_setup import setup_logging
+from app.core.request_id_middleware import RequestIDMiddleware
+from app.core.request_logging_middleware import RequestLoggingMiddleware
+from app.db.initialize_database import init_db
 
 
 @asynccontextmanager
@@ -54,6 +54,7 @@ def create_app() -> FastAPI:
 
     logger.bind(env=settings.env, version=settings.app_version).info("应用已创建")
     return app
+
 
 
 app = create_app()

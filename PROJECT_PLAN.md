@@ -78,7 +78,7 @@
 ### B. 身份与权限
 
 - [x] bcrypt 密码哈希 + JWT 签发/解析
-- [x] `api/deps.py`：当前用户、角色校验
+- [x] `api/dependencies.py`：当前用户、角色校验
 - [ ] 登录 / 登出 / 刷新
 - [ ] 用户管理（管理员）
 - [ ] 角色：`admin` / `procurement` / `logistics` / `quality` / `finance`
@@ -189,10 +189,10 @@ models/schemas ← api / services
 
 ### 新增一个功能时，按这个顺序放
 
-1. 数据结构 → `db/models.py`（表）或 `models/schemas.py`（接口模型）
+1. 数据结构 → `db/tables.py`（表）或 `models/api_models.py`（接口模型）
 2. 业务逻辑 → `services/<模块>.py`
 3. 接口 → `api/routes/<模块>.py` + 在 `main.py` 注册
-4. 权限 → `api/deps.py`
+4. 权限 → `api/dependencies.py`
 5. 测试 → `tests/`
 6. 文档 → README 状态表 / 架构文档
 
@@ -334,9 +334,9 @@ docs: 更新 M1 进度与接口说明
 ## 12. 接下来的任务顺序
 
 1. `core/security.py`：bcrypt + JWT
-2. `db/init_db.py`：`init_db` + 演示账号种子
+2. `db/initialize_database.py`：`init_db` + 演示账号种子
 3. `main.py` 收尾：lifespan、CORS、安全响应头
-4. `models/schemas.py` + `api/deps.py`：登录、当前用户、角色校验
+4. `models/api_models.py` + `api/dependencies.py`：登录、当前用户、角色校验
 5. 用户管理接口
 6. 文档表、上传与摄取队列
 7. Qdrant 集合、payload、检索过滤

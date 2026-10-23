@@ -82,7 +82,7 @@ SupplyGuard 面向采购、物流、质量、财务等多角色，在 RBAC 权�
 └──────────────────────────┬──────────────────────────────────┘
                            │
 ┌──────────────────────────▼──────────────────────────────────┐
-│ api/deps.py        鉴权依赖：当前用户、角色                      │
+│ api/dependencies.py 鉴权依赖：当前用户、角色                     │
 │ core/security.py   JWT 与密码哈希                            │
 └──────────────────────────┬──────────────────────────────────┘
                            │
@@ -92,7 +92,7 @@ SupplyGuard 面向采购、物流、质量、财务等多角色，在 RBAC 权�
         │                  │                  │
 ┌───────▼──────┐   ┌───────▼──────┐   ┌───────▼─────────────┐
 │ db/          │   │ core/        │   │ 外部客户端           │
-│ session.py   │   │ config.py    │   │ Qdrant / Neo4j      │
+│ database.py  │   │ configuration.py │   │ Qdrant / Neo4j      │
 │ models.py    │   │ logging_*    │   │ Redis / LLM / Embed │
 │ audit_db.py  │   │ security.py  │   │                     │
 └──────────────┘   └──────────────┘   └─────────────────────┘
@@ -102,13 +102,13 @@ SupplyGuard 面向采购、物流、质量、财务等多角色，在 RBAC 权�
 
 ```
 main.py
-├── core/logging_config.py         启动时配置日志
-├── core/request_id.py             中间件：生成请求 ID
-├── core/request_logging.py        中间件：访问日志
+├── core/logging_setup.py          启动时配置日志
+├── core/request_id_middleware.py  中间件：生成请求 ID
+├── core/request_logging_middleware.py 中间件：访问日志
 ├── api/routes/*.py                各业务路由
-│     ├── api/deps.py              → core/security.py（JWT 校验）
+│     ├── api/dependencies.py      → core/security.py（JWT 校验）
 │     └── services/*.py            业务逻辑
-│           ├── db/session.py      → db/models.py（SQL）
+│           ├── db/database.py     → db/tables.py（SQL）
 │           ├── services/retrieval.py   → Qdrant
 │           ├── services/graph.py       → Neo4j
 │           ├── services/llm.py         → Ollama / OpenAI / Gemini
@@ -119,7 +119,7 @@ main.py
 │     ├── ingest_worker.py         解析、分块、向量化
 │     ├── graph_worker.py          图谱构建
 │     └── benchmark_worker.py      批量评测
-└── models/schemas.py              请求/响应模型，供 api 与 services 引用
+└── models/api_models.py           请求/响应模型，供 api 与 services 引用
 ```
 
 #### 一次风险问答的调用组合
@@ -127,7 +127,7 @@ main.py
 ```
 POST /api/risks/query
   → RequestID / RequestLogging 中间件
-  → api/deps.py
+  → api/dependencies.py
        校验 JWT → 加载用户 → 得到 user / role
   → services/workflow.py
        intake

@@ -6,7 +6,7 @@ from datetime import UTC, datetime, timedelta
 import bcrypt
 from jose import JWTError, jwt
 
-from app.core.config import settings
+from app.core.configuration import settings
 
 BCRYPT_MAX_BYTES = 72
 

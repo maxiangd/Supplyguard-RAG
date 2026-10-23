@@ -3,10 +3,10 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.core.config import settings
+from app.core.configuration import settings
 from app.core.security import hash_password
-from app.db.models import User
-from app.db.session import Base, SessionLocal, engine
+from app.db.database import Base, SessionLocal, engine
+from app.db.tables import User
 
 SEED_USERS = [
     ("catl_admin", "admin"),

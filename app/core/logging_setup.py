@@ -8,7 +8,7 @@ from typing import Any
 
 from loguru import logger
 
-from app.core.config import settings
+from app.core.configuration import settings
 
 _STANDARD_FIELDS = {
     "name", "msg", "args", "levelname", "levelno", "pathname", "filename",
