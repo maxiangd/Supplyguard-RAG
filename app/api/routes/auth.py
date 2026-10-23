@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.api.deps import get_current_user
 from app.core.security import create_access_token, verify_password
 from app.db.models import User, UserTenant
 from app.db.session import get_db
@@ -63,4 +64,20 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse
             role=user.role,
             default_tenant_id=user.default_tenant_id,
         ),
+    )
+
+
+@router.get("/me", response_model=UserOut)
+def me(current_user: User = Depends(get_current_user)) -> UserOut:
+    """返回当前登录用户的信息。
+
+    参数：current_user —— 由 get_current_user 依赖解析出的用户。
+    返回：UserOut，不含密码哈希。
+    异常：401 —— 未提供令牌或令牌无效。
+    """
+    return UserOut(
+        user_id=current_user.user_id,
+        username=current_user.username,
+        role=current_user.role,
+        default_tenant_id=current_user.default_tenant_id,
     )
