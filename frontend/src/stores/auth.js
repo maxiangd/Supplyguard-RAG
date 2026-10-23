@@ -15,12 +15,8 @@ export const useAuthStore = defineStore('auth', () => {
   const isLoggedIn = computed(() => Boolean(token.value))
   const role = computed(() => user.value?.role ?? '')
 
-  async function login({ username, password, tenant }) {
-    const data = await client.post('/auth/login', {
-      username,
-      password,
-      tenant_id: tenant || null,
-    })
+  async function login({ username, password }) {
+    const data = await client.post('/auth/login', { username, password })
 
     token.value = data.access_token
     user.value = data.user

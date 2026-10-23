@@ -1,4 +1,4 @@
-"""数据库初始化：建表并写入默认租户与管理员账号（可重复执行）。"""
+"""数据库初始化：建表并写入默认租户与演示账号（可重复执行）。"""
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -8,8 +8,17 @@ from app.core.security import hash_password
 from app.db.models import Tenant, User, UserTenant
 from app.db.session import Base, SessionLocal, engine
 
-DEFAULT_TENANT_ID = "demo"
-DEFAULT_TENANT_NAME = "演示租户"
+DEFAULT_TENANT_ID = "catl"
+DEFAULT_TENANT_NAME = "宁德时代供应链"
+
+# 每个角色一个演示账号，共用一个演示密码
+SEED_USERS = [
+    ("catl_admin", "admin"),
+    ("catl_procurement", "procurement"),
+    ("catl_logistics", "logistics"),
+    ("catl_quality", "quality"),
+    ("catl_finance", "finance"),
+]
 
 
 def _seed_tenant(session: Session) -> Tenant:
@@ -27,35 +36,38 @@ def _seed_tenant(session: Session) -> Tenant:
     return tenant
 
 
-def _seed_admin(session: Session) -> None:
-    """确保默认管理员账号存在，并加入默认租户。
+def _seed_user(session: Session, username: str, role: str) -> None:
+    """确保演示账号存在，并加入默认租户。
 
-    参数：session —— 由调用方创建的数据库会话。
-    返回：None。已存在账号时直接返回，不覆盖密码与角色。
+    参数：
+        session —— 由调用方创建的数据库会话。
+        username —— 账号名。
+        role —— 该账号的角色。
+    返回：None。已存在账号时保留原密码与角色，不覆盖。
     """
-    admin = session.scalar(select(User).where(User.username == settings.demo_username))
-    if admin is None:
-        admin = User(
-            username=settings.demo_username,
+    user = session.scalar(select(User).where(User.username == username))
+    if user is None:
+        user = User(
+            username=username,
             password_hash=hash_password(settings.demo_password),
-            role="admin",
+            role=role,
             default_tenant_id=DEFAULT_TENANT_ID,
         )
-        session.add(admin)
+        session.add(user)
         session.flush()
 
     member = session.scalar(
         select(UserTenant).where(
-            UserTenant.user_id == admin.user_id,
+            UserTenant.user_id == user.user_id,
             UserTenant.tenant_id == DEFAULT_TENANT_ID,
         )
     )
     if member is None:
-        session.add(UserTenant(user_id=admin.user_id, tenant_id=DEFAULT_TENANT_ID))
+        session.add(UserTenant(user_id=user.user_id, tenant_id=DEFAULT_TENANT_ID))
 
 
 def init_db() -> None:
-    """初始化数据库：建表并写入默认租户与管理员账号。
+    """初始化数据库：建表并写入默认租户与演示账号。
 
     由应用启动时调用；重复执行不会产生重复数据，也不会覆盖已有密码。
     参数：无。
@@ -66,7 +78,8 @@ def init_db() -> None:
     session = SessionLocal()
     try:
         _seed_tenant(session)
-        _seed_admin(session)
+        for username, role in SEED_USERS:
+            _seed_user(session, username, role)
         session.commit()
     except Exception:
         session.rollback()

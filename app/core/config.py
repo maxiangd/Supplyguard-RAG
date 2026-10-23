@@ -27,8 +27,8 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     # 字段名必须和 .env 里的 APP_ACCESS_TOKEN_EXPIRE_MINUTES 完全对应
     access_token_expire_minutes: int = 60
-    demo_username: str = "demo"
-    demo_password: str = "demo123"
+    # 演示账号共用一个密码；账号与角色见 db/init_db.py 的 SEED_USERS
+    demo_password: str = "catl123"
 
     # 数据库
     database_url: str = "sqlite:///./data/app.db"

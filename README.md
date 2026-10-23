@@ -2,8 +2,24 @@
 
 供应链风险 AgentHarness 平台。在 RBAC 权限约束下，融合 SecureRAG、GraphRAG、Memory 与 LangGraph 固定工作流，为采购、物流、质量、财务等多角色提供**可引用、可审计、可 Benchmark** 的风险洞察与决策支持。
 
-> 当前状态：**开发中（Phase 1）**。目前可运行的是健康检查接口，风险检索、图谱分析、审批等功能尚未实现。
+> 当前状态：**开发中（Phase 1）**。登录与前端页面骨架已可运行，风险检索、图谱分析、审批等功能尚未实现。
 > 详细架构与数据模型见 [docs/architecture.md](docs/architecture.md)；执行计划、任务拆分与验收标准见 [PROJECT_PLAN.md](PROJECT_PLAN.md)。
+
+## 演示场景
+
+以**宁德时代（CATL）**的公开供应链信息为背景：锂/钴原料供应商 → 正极与隔膜 → 电芯基地 → 港口 → 海外客户。
+
+所有文档、指标与风险结论均为**演示数据**，基于公开资料改编，不构成对任何真实公司的评价、投资或经营建议。
+
+演示账号（密码统一 `catl123`）：
+
+| 账号 | 角色 |
+|---|---|
+| `catl_admin` | 管理员 |
+| `catl_procurement` | 采购 |
+| `catl_logistics` | 物流 |
+| `catl_quality` | 质量 |
+| `catl_finance` | 财务 |
 
 ## 不是又一个 RAG 问答 Demo
 

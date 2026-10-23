@@ -1,7 +1,7 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { createTenant, createUser, fetchAdminData } from '../api/mock'
+import { createUser, fetchAdminData } from '../api/mock'
 
 const loading = ref(true)
 const activeTab = ref('tenants')
@@ -12,8 +12,6 @@ const roles = ref([])
 const metrics = ref({})
 const logs = ref([])
 
-const tenantDialog = ref(false)
-const tenantForm = reactive({ tenant_id: '', name: '' })
 const userDialog = ref(false)
 const userForm = reactive({
   username: '',
@@ -38,18 +36,6 @@ async function load() {
   metrics.value = data.metrics
   logs.value = data.logs
   loading.value = false
-}
-
-async function addTenant() {
-  if (!tenantForm.tenant_id || !tenantForm.name) {
-    ElMessage.warning('请填写租户 ID 和名称')
-    return
-  }
-  const created = await createTenant({ ...tenantForm })
-  tenants.value.push(created)
-  tenantDialog.value = false
-  Object.assign(tenantForm, { tenant_id: '', name: '' })
-  ElMessage.success('租户已创建')
 }
 
 async function addUser() {
@@ -77,12 +63,7 @@ onMounted(load)
 <template>
   <el-card v-loading="loading" shadow="never">
     <el-tabs v-model="activeTab">
-      <el-tab-pane label="租户" name="tenants">
-        <div class="toolbar">
-          <el-button type="primary" @click="tenantDialog = true">
-            新建租户
-          </el-button>
-        </div>
+      <el-tab-pane label="公司" name="tenants">
         <el-table :data="tenants" size="small">
           <el-table-column prop="tenant_id" label="租户 ID" width="140" />
           <el-table-column prop="name" label="名称" min-width="180" />
@@ -190,21 +171,6 @@ onMounted(load)
       </el-tab-pane>
     </el-tabs>
   </el-card>
-
-  <el-dialog v-model="tenantDialog" title="新建租户" width="420px">
-    <el-form label-width="80px">
-      <el-form-item label="租户 ID">
-        <el-input v-model="tenantForm.tenant_id" placeholder="例如 acme" />
-      </el-form-item>
-      <el-form-item label="名称">
-        <el-input v-model="tenantForm.name" placeholder="例如 Acme 供应链" />
-      </el-form-item>
-    </el-form>
-    <template #footer>
-      <el-button @click="tenantDialog = false">取消</el-button>
-      <el-button type="primary" @click="addTenant">创建</el-button>
-    </template>
-  </el-dialog>
 
   <el-dialog v-model="userDialog" title="新建用户" width="420px">
     <el-form label-width="80px">

@@ -30,6 +30,10 @@ const activeMenu = computed(() => route.path)
 const currentTitle = computed(
   () => menus.find((menu) => menu.path === route.path)?.label ?? '',
 )
+const tenantName = computed(() => {
+  const names = { catl: '宁德时代供应链' }
+  return names[auth.tenantId] || auth.tenantId || '未选择租户'
+})
 
 function handleLogout() {
   auth.logout()
@@ -53,7 +57,7 @@ function handleLogout() {
       <el-header class="header">
         <span class="title">{{ currentTitle }}</span>
         <div class="header-right">
-          <el-tag type="info" effect="plain">{{ auth.tenantId || '未选择租户' }}</el-tag>
+          <el-tag type="info" effect="plain">{{ tenantName }}</el-tag>
           <el-dropdown @command="handleLogout">
             <span class="user">{{ auth.user?.username ?? '未登录' }}</span>
             <template #dropdown>

@@ -26,9 +26,9 @@ const stepDefs = [
 ]
 
 const examples = [
-  '华东精密制造停产会影响 Q4 交付吗？',
-  '上海港拥堵应该启用备选航线吗？',
-  '哪些供应商受芯片短缺影响最大？',
+  '赣锋锂业供应波动会影响 Q4 电芯交付吗？',
+  '红海绕行应该启用中欧班列吗？',
+  '刚果（金）钴出口配额影响哪些基地？',
 ]
 
 function resetRun() {
@@ -158,7 +158,7 @@ async function scrollToBottom() {
             type="textarea"
             :rows="3"
             resize="none"
-            placeholder="描述你的风险问题，例如：华东精密制造停产会影响 Q4 交付吗？"
+            placeholder="描述你的风险问题，例如：赣锋锂业供应波动会影响 Q4 电芯交付吗？"
             @keydown.enter.exact.prevent="ask"
           />
           <div class="composer-actions">
