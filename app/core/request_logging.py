@@ -12,13 +12,11 @@
     健康检查 → DEBUG（探针每隔几秒就调一次，用 INFO 会把日志刷满）
 """
 
-import logging
 import time
 
+from loguru import logger
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
-
-logger = logging.getLogger("app.request")
 
 # 这些路径调用频繁且信息量低，正常情况不需要出现在 INFO 日志里
 _QUIET_PATHS = {"/api/health/live", "/api/health/ready"}
@@ -42,48 +40,36 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
         try:
             response = await call_next(request)
         except Exception:
-            # 路由或更内层中间件抛了未捕获异常。
-            # 先记录完整堆栈（logger.exception 会自动带上 traceback），
-            # 再把异常继续抛出，交给 FastAPI 的全局异常处理返回 500。
-            logger.exception(
-                "请求处理异常",
-                extra={
-                    "method": request.method,
-                    "path": request.url.path,
-                    "duration_ms": _elapsed_ms(start),
-                    "client_ip": _client_ip(request),
-                },
-            )
+            # 先记录完整堆栈，再把异常继续抛出，交给 FastAPI 返回 500
+            logger.bind(
+                source_logger="app.request",
+                method=request.method,
+                path=request.url.path,
+                duration_ms=_elapsed_ms(start),
+                client_ip=_client_ip(request),
+            ).exception("请求处理异常")
             raise
 
         status = response.status_code
         path = request.url.path
 
         if path in _QUIET_PATHS:
-            level = logging.DEBUG
+            level = "DEBUG"
         elif status >= 500:
-            level = logging.ERROR
+            level = "ERROR"
         elif status >= 400:
-            level = logging.WARNING
+            level = "WARNING"
         else:
-            level = logging.INFO
+            level = "INFO"
 
-        # 用 logger.log(level, ...) 而不是固定 info，才能按状态码动态选级别。
-        # 消息模板用 %s 占位，由 logging 在需要输出时才格式化，避免无谓的字符串拼接。
-        logger.log(
-            level,
-            "%s %s -> %s",
-            request.method,
-            path,
-            status,
-            extra={
-                "method": request.method,
-                "path": path,
-                "status_code": status,
-                "duration_ms": _elapsed_ms(start),
-                "client_ip": _client_ip(request),
-            },
-        )
+        logger.bind(
+            source_logger="app.request",
+            method=request.method,
+            path=path,
+            status_code=status,
+            duration_ms=_elapsed_ms(start),
+            client_ip=_client_ip(request),
+        ).log(level, "{} {} -> {}", request.method, path, status)
         return response
 
 

@@ -1,8 +1,8 @@
-import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from loguru import logger
 
 from app.api.routes.auth import router as auth_router
 from app.core.config import settings
@@ -10,8 +10,6 @@ from app.core.logging_config import setup_logging
 from app.core.request_id import RequestIDMiddleware
 from app.core.request_logging import RequestLoggingMiddleware
 from app.db.init_db import init_db
-
-logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -69,7 +67,7 @@ def create_app() -> FastAPI:
         """
         return {"status": "ok", "environment": settings.env}
 
-    logger.info("应用已创建", extra={"env": settings.env, "version": settings.app_version})
+    logger.bind(env=settings.env, version=settings.app_version).info("应用已创建")
     return app
 
 

@@ -13,6 +13,7 @@
   langgraph==1.0.10
   langchain-core==1.2.17
   sentry-sdk==2.54.0
+  loguru==0.7.3
   prometheus-client==0.24.1
   python-dateutil==2.9.0.post0
   sqlalchemy==2.0.48
