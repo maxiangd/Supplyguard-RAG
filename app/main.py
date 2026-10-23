@@ -22,7 +22,7 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title=settings.app_name,
         version=settings.app_version,
-        description="Multi-tenant compliance RAG with human-in-the-loop approval",
+        description="Supply chain risk AgentHarness with SecureRAG, GraphRAG and RBAC",
     )
 
     # Starlette 的规则：后添加的中间件在更外层。

@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     )
 
     # 应用
-    app_name: str = "RoleGuard RAG"
+    app_name: str = "SupplyGuard"
     app_version: str = "0.1.0"
     env: str = "development"
     api_prefix: str = "/api"
@@ -35,7 +35,13 @@ class Settings(BaseSettings):
 
     # 向量库
     qdrant_url: str = "http://localhost:6333"
-    qdrant_collection: str = "roleguard_chunks"
+    qdrant_collection: str = "supplyguard_chunks"
+
+    # 图谱（GraphRAG）
+    neo4j_uri: str = "bolt://localhost:7687"
+    neo4j_user: str = "neo4j"
+    neo4j_password: str = "change-me"
+    neo4j_database: str = "neo4j"
 
     # Embedding
     embedding_provider: str = "ollama"
@@ -53,6 +59,22 @@ class Settings(BaseSettings):
     chunk_size: int = 800
     chunk_overlap: int = 120
     top_k: int = 4
+
+    # SecureRAG：检索前按角色过滤，检索后再复核一次
+    secure_rag_enforce_roles: bool = True
+    secure_rag_review_max_retries: int = 1
+    # 一次检索中被权限剔除的比例超过该值时，认为查询异常
+    secure_rag_max_drop_ratio: float = 0.5
+
+    # Memory：短会话与长期记忆
+    memory_session_ttl_seconds: int = 3600
+    memory_max_turns: int = 10
+    memory_long_term_enabled: bool = True
+
+    # Benchmark
+    benchmark_max_cases: int = 200
+    benchmark_min_hit_rate: float = 0.8
+    benchmark_require_zero_leak: bool = True
 
     # 审批 / 输出策略
     require_approval: bool = True

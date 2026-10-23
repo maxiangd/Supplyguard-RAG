@@ -88,8 +88,10 @@ class User(Base):
     # 存 bcrypt 哈希（约 60 字符），长度留到 255 方便以后换算法
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
 
-    # 角色决定能访问哪些接口：admin 可管理用户/租户/监控，user 只能问答和查看自己的数据。
-    # 用字符串而不是数据库枚举：SQLite 对枚举支持弱，字符串更简单，以后加角色不用迁移
+    # 角色决定能访问哪些接口与文档：
+    #   admin 管理组织/用户/策略/监控；
+    #   procurement / logistics / quality / finance 分别对应采购、物流、质量、财务视角。
+    # 用字符串而不是数据库枚举：SQLite 对枚举支持弱，以后加角色不用迁移
     role: Mapped[str] = mapped_column(String(32), nullable=False, default="user")
 
     # 默认租户：登录后如果请求没带 X-Tenant-ID，就用它。

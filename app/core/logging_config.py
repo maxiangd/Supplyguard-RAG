@@ -84,14 +84,14 @@ def setup_logging() -> None:
 
     # 幂等处理：测试里可能反复创建 app，在同一个进程里多次调用本函数。
     # 先摘掉上次由我们自己挂上的 handler，避免同一条日志被输出两遍。
-    # handler 是普通对象，允许动态加属性，这里用 _roleguard 标记「是本项目挂的」。
+    # handler 是普通对象，允许动态加属性，这里用 _supplyguard 标记「是本项目挂的」。
     for handler in list(root.handlers):
-        if getattr(handler, "_roleguard", False):
+        if getattr(handler, "_supplyguard", False):
             root.removeHandler(handler)
 
     handler = logging.StreamHandler(sys.stdout)
     handler.setFormatter(JsonFormatter())
-    handler._roleguard = True  # type: ignore[attr-defined]
+    handler._supplyguard = True  # type: ignore[attr-defined]
     root.addHandler(handler)
 
     # uvicorn 启动时会给自己挂 handler 并把 propagate 设为 False，

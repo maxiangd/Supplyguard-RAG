@@ -1,406 +1,573 @@
-# RoleGuard RAG 项目全景指南
+# SupplyGuard 技术架构与路线图
 
 > 最后更新：2026-10-22
 > 当前阶段：**Phase 1（后端核心基建）进行中**
-> 参考架构：Complyra（MIT），本项目为从零重写，不复制其代码
+> 定位：供应链风险 AgentHarness 平台
 
 ---
 
-## 1. 项目是什么
+## 1. 项目定位
 
-RoleGuard RAG 是一个**带人工审批门禁的企业级多租户知识问答系统**。
+SupplyGuard 面向采购、物流、质量、财务等多角色，在 RBAC 权限约束下，融合 SecureRAG、GraphRAG、Memory 与 LangGraph 固定工作流，提供**可引用、可审计、可 Benchmark** 的供应链风险洞察与决策支持。
 
-一句话概括：员工向企业知识库提问 → 系统检索并生成答案 → 敏感内容被策略拦截、高风险答案先转人工审批 → 全过程留痕可审计。
-
-它要解决四个现实问题：
-
-| 问题 | 本项目的解法 |
-|---|---|
-| 不同部门/客户的数据不能互相看到 | 多租户隔离（数据库 + 向量库双层过滤） |
-| AI 可能把密钥、内部编号等敏感信息说出去 | 输出策略门禁（正则拦截） |
-| 高风险回答不能直接给用户 | 人工审批工作流（human-in-the-loop） |
-| 合规要求"谁问了什么、谁批的"可追溯 | 审计日志（只追加、可导出 CSV） |
-
-## 2. 核心能力清单
-
-- **多租户**：用户可属于多个租户，请求按 `X-Tenant-ID` 切换上下文
-- **文档摄取**：PDF（逐页解析 + OCR 回退）、TXT/Markdown、图片（Vision 描述）
-- **智能分块**：段落 → 句子 → 贪心合并，保留页码
-- **混合检索**：dense 向量 + BM25 稀疏向量，RRF 融合排序
-- **ReAct 检索循环**：改写问题 → 检索 → 判断是否足够 → 不够就再检索
-- **输出策略门禁**：命中敏感正则时拦截并替换回答
-- **人工审批**：草稿先入库，审核通过后才返回最终答案
-- **审计**：记录问答、审批、管理操作，支持搜索与 CSV 导出
-- **可观测**：JSON 结构化日志、请求 ID 串联、Prometheus 指标、Grafana 仪表盘
-
-## 3. 总体架构图
+核心流程：
 
 ```
-┌────────────────────────────────────────────────────────────────┐
-│  前端 SPA（React 19 + TypeScript + Vite）                        │
-│  Login / 工作台 / 审批 / 审计 / 管理 / 监控 / 知识库               │
-└───────────────────────────┬────────────────────────────────────┘
-                            │ HTTP + SSE
-                            │ Authorization: Bearer <JWT>
-                            │ X-Tenant-ID: <租户>
-┌───────────────────────────▼────────────────────────────────────┐
-│  FastAPI 应用（app/）                                            │
-│                                                                │
-│  中间件链（由外到内）：                                           │
-│    RequestID → RequestLogging → CORS → SecurityHeaders          │
-│                                                                │
-│  路由层（app/api/routes/）：                                      │
-│    auth  users  tenants  documents  ingest                      │
-│    chat  approvals  audit  health  monitoring                   │
-│                                                                │
-│  鉴权与上下文：                                                  │
-│    JWT 校验 → 角色检查（RBAC）→ 租户成员校验                       │
-└───────────────┬───────────────────────────────┬────────────────┘
-                │                               │
-┌───────────────▼──────────────┐   ┌────────────▼─────────────────┐
-│  业务服务层（app/services/）   │   │  LangGraph 问答工作流          │
-│                              │   │                              │
-│  embeddings  检索向量化        │◄──┤  rewrite（改写问题）           │
-│  retrieval   向量库读写        │   │    ↓                         │
-│  llm         模型调用/流式     │   │  retrieve（检索）              │
-│  ingest      解析与分块        │   │    ↓                         │
-│  policy      输出门禁          │   │  judge（够不够？）──不够──┐     │
-│  approval_policy 审批策略链    │   │    ↓ 够                  │     │
-│  approvals   审批单           │   │  draft（生成草稿）         │     │
-│  audit       审计写入          │   │    ↓                     │     │
-│  queue       摄取任务队列      │   │  policy（输出检查）        │     │
-│                              │   │    ↓                     │     │
-└───────┬──────────┬───────────┘   │  approval 或 final         │     │
-        │          │               └────────────────────────────┘     │
-        │          │                                                 │
-┌───────▼──────┐ ┌─▼──────────┐ ┌───────────────┐ ┌──────────────────┐
-│ PostgreSQL   │ │  Qdrant    │ │ Redis + RQ    │ │  LLM / Embedding │
-│ 或 SQLite     │ │  向量库     │ │  异步摄取队列   │ │  Ollama / OpenAI │
-│              │ │            │ │               │ │  / Gemini        │
-│ 租户/用户     │ │ 文档分块     │ │ queued →      │ │                  │
-│ 文档/审批     │ │ + 租户过滤   │ │ processing →  │ │ 问答生成          │
-│ 审计/策略     │ │            │ │ completed     │ │ 向量化            │
-└──────────────┘ └────────────┘ └───────────────┘ └──────────────────┘
-
-可观测性：stdout JSON 日志 / 内存日志缓冲 / Prometheus 指标 / Grafana 面板
+风险问题
+  → 角色与权限校验
+  → 授权文档检索（SecureRAG）
+  → 供应链图谱多跳影响分析（GraphRAG）
+  → 检索结果权限复核（Review Node）
+  → 带引用的结论生成
+  → 高风险结论人工审批
+  → 审计留痕
+  → 可选写入长期记忆
 ```
 
-## 4. 多租户隔离：三层防线
+## 2. 角色与应用场景
 
-租户 ID 从登录开始一路贯穿，任何一层缺失都可能造成数据泄露。
-
-```
-登录
- └─ JWT 里带 tid（默认租户）
-      └─ 请求头 X-Tenant-ID 可切换当前租户
-           └─ get_tenant_id() 校验：这个用户真的是该租户成员吗？
-                └─ SQL 查询：WHERE tenant_id = :tid
-                     └─ Qdrant 检索：payload 过滤 tenant_id = :tid
-```
-
-| 层 | 作用 | 不做会怎样 |
+| 角色 | 关注点 | 典型问题 |
 |---|---|---|
-| JWT 携带 `tid` | 确定用户身份与默认租户 | 无法判断请求属于哪个租户 |
-| 成员校验 | 防止伪造 `X-Tenant-ID` 越权 | 改个请求头就能看别家数据 |
-| SQL `tenant_id` 过滤 | 文档、审批、审计按租户隔离 | 列表接口泄露他人数据 |
-| Qdrant payload 过滤 | 向量检索只召回本租户分块 | RAG 答案里混入别家内容 |
+| `procurement`（采购） | 供应商风险、替代供应源 | 某供应商所在国家发生罢工，哪些物料会受影响？ |
+| `logistics`（物流） | 运输中断、港口拥堵 | 上海港停运会影响哪些在途订单？ |
+| `quality`（质量） | 质量事故、召回 | 这批来料的质量异常关联哪些供应商与工厂？ |
+| `finance`（财务） | 信用风险、付款风险 | 某供应商财务状况恶化，相关合同风险有多大？ |
+| `admin`（管理员） | 组织、用户、策略、监控 | 管理权限、审批规则、查看审计 |
 
-## 5. 一次问答的完整流程
+多租户在本项目中表示「企业 / 组织」：不同企业的供应商、文档、风险记录互相隔离。当前代码中的 `tenant_id` 即组织标识。
 
-### 同步接口 `POST /api/chat/`
+### 非目标
 
-```
-1. 中间件         生成 request_id，开始计时
-2. 鉴权           解析 JWT → 用户、角色、默认租户
-3. 租户校验       校验 X-Tenant-ID 是否属于该用户
-4. LangGraph      rewrite   → 用 LLM 改写/补全问题
-                  retrieve  → Qdrant 混合检索 top_k
-                  judge     → LLM 判断证据是否足够
-                              └─ 不够：带着新问题回到 retrieve（最多 N 轮）
-                  draft     → LLM 基于编号来源生成答案
-5. 输出策略        正则扫描敏感内容
-                  ├─ 命中：替换为拦截提示，记审计，直接返回
-                  └─ 通过：进入下一步
-6. 审批判断        document override → tenant policy → 全局开关
-                  ├─ 需要审批：写入 approvals，返回 pending 状态与草稿
-                  └─ 不需要：返回最终答案
-7. 审计写入        question / answer / 命中来源 / 审批状态
-8. 响应            写 X-Request-ID，记录访问日志
-```
+- 不做自动下单、自动取消订单等写操作
+- 不做全网爬取，只基于已入库文档与企业图谱
+- 不在 MVP 阶段引入代码执行 runtime
 
-### 流式接口 `POST /api/chat/stream`（SSE）
-
-事件顺序：
+## 3. 总体架构
 
 ```
-rewrite_start → rewrite_done
-retrieve_start → retrieve_done
-judge_start → judge_done        （可能循环多轮）
-generate_start → token × N
-policy_blocked 或 policy_passed
-approval_required 或 done
+┌──────────────────────────────────────────────────────────────┐
+│ React SPA                                                    │
+│ 风险看板 / 风险问答 / 供应商图谱 / 复核台 / Benchmark / 审计     │
+└───────────────────────┬──────────────────────────────────────┘
+                        │ HTTP + SSE（JWT + 组织上下文）
+┌───────────────────────▼──────────────────────────────────────┐
+│ FastAPI（中间件、鉴权、RBAC、路由）                             │
+└──────────┬───────────────────────────────┬───────────────────┘
+           │ 同步请求                       │ 入队
+┌──────────▼──────────────┐      ┌─────────▼──────────────────┐
+│ 服务层                   │      │ Redis + RQ Worker          │
+│ retrieval（SecureRAG）   │      │ 文档摄取 / 图谱构建 / 评测   │
+│ graph（GraphRAG）        │      └─────────┬──────────────────┘
+│ workflow（LangGraph）    │                │
+│ memory / policy / audit  │                │
+└──────┬──────────┬────────┴────────┬───────┴────────┬─────────┘
+       │          │                 │                │
+┌──────▼─────┐ ┌──▼──────┐ ┌────────▼───────┐ ┌──────▼──────┐
+│ PostgreSQL │ │ Qdrant  │ │ Neo4j          │ │ Redis       │
+│ 业务/记忆   │ │ 文档向量 │ │ 供应链图谱      │ │ 会话/队列    │
+│ /审计       │ │ +权限   │ │ 多跳关系        │ │             │
+└────────────┘ └─────────┘ └────────────────┘ └─────────────┘
+
+模型：Ollama / OpenAI / Gemini（LLM + Embedding）
+可观测：JSON 日志 / request_id / Prometheus / Grafana
 ```
 
-前端用原生 `fetch` + `AbortController` 读取事件流，可随时中断。
+### 3.1 模块组合与依赖关系
 
-## 6. 审批决策链
-
-```
-文档级覆盖（documents.approval_override）
- ├─ always → 必须审批
- ├─ never  → 无需审批
- └─ 未设置 → 看租户策略
-              ├─ all       → 所有问答都审批
-              ├─ sensitive → 仅敏感文档（sensitivity=high）审批
-              └─ none      → 不审批
-                            └─ 最后看全局 require_approval
-```
-
-优先级：**文档 > 租户 > 全局**。这样单个文档可以临时"永远需要人工过目"，也可以让某租户整体免审。
-
-## 7. 数据模型（ER 图）
+#### 分层依赖（只能向下调用）
 
 ```
-┌─────────────┐          ┌──────────────────┐
-│  tenants    │1        *│     users        │
-│─────────────│◄─────────│──────────────────│
-│ tenant_id PK│          │ user_id PK       │
-│ name        │          │ username UNIQUE  │
-│ created_at  │          │ password_hash    │
-└──────┬──────┘          │ role             │
-       │                 │ default_tenant_id│
-       │                 │ created_at       │
-       │                 └───────┬──────────┘
-       │                         │
-       │      ┌──────────────────┴────────────┐
-       │      │           user_tenants        │
-       │      │───────────────────────────────│
-       │      │ id PK                         │
-       │      │ user_id FK → users (CASCADE)  │
-       │      │ tenant_id FK → tenants (CASCADE)│
-       │      │ UNIQUE(user_id, tenant_id)    │
-       │      └───────────────────────────────┘
-       │
-       │1
-       ├──────────────┬───────────────┬──────────────┬──────────────┐
-       │*             │*              │*             │1             │*
-┌──────▼──────┐ ┌─────▼──────┐ ┌──────▼──────┐ ┌─────▼──────┐ ┌────▼─────────┐
-│  documents  │ │ ingest_jobs│ │  approvals  │ │audit_logs  │ │tenant_policies│
-│─────────────│ │────────────│ │─────────────│ │────────────│ │───────────────│
-│ document_id │ │ job_id     │ │ approval_id │ │ id         │ │ tenant_id PK  │
-│ tenant_id   │ │ tenant_id  │ │ user_id     │ │ timestamp  │ │ approval_mode │
-│ created_by  │ │ created_by │ │ tenant_id   │ │ tenant_id  │ │ updated_at    │
-│ filename    │ │ filename   │ │ question    │ │ user       │ │ updated_by    │
-│ sensitivity │ │ status     │ │ draft_answer│ │ action     │ └───────────────┘
-│ status      │ │ chunks_... │ │ final_answer│ │ input_text │
-│ approval_   │ │ document_id│ │ status      │ │ output_text│
-│  override   │ │ error_msg  │ │ decision_by │ │ meta_json  │
-│ storage_path│ │ created_at │ │ decided_at  │ └────────────┘
-│ timestamps  │ │ updated_at │ │ note        │
-└─────────────┘ └────────────┘ └─────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│ api/routes/*       接口层：参数校验、权限、调用服务            │
+└──────────────────────────┬──────────────────────────────────┘
+                           │
+┌──────────────────────────▼──────────────────────────────────┐
+│ api/deps.py        鉴权依赖：当前用户、角色、组织成员          │
+│ core/security.py   JWT 与密码哈希                            │
+└──────────────────────────┬──────────────────────────────────┘
+                           │
+┌──────────────────────────▼──────────────────────────────────┐
+│ services/*         业务逻辑：检索、图谱、工作流、记忆、审批     │
+└───────┬──────────────────┬──────────────────┬───────────────┘
+        │                  │                  │
+┌───────▼──────┐   ┌───────▼──────┐   ┌───────▼─────────────┐
+│ db/          │   │ core/        │   │ 外部客户端           │
+│ session.py   │   │ config.py    │   │ Qdrant / Neo4j      │
+│ models.py    │   │ logging_*    │   │ Redis / LLM / Embed │
+│ audit_db.py  │   │ security.py  │   │                     │
+└──────────────┘   └──────────────┘   └─────────────────────┘
 ```
 
-### 每张表的作用
+#### 文件级组合
 
-| 表 | 作用 | 状态 |
+```
+main.py
+├── core/logging_config.py         启动时配置日志
+├── core/request_id.py             中间件：生成请求 ID
+├── core/request_logging.py        中间件：访问日志
+├── api/routes/*.py                各业务路由
+│     ├── api/deps.py              → core/security.py（JWT 校验）
+│     └── services/*.py            业务逻辑
+│           ├── db/session.py      → db/models.py（SQL）
+│           ├── services/retrieval.py   → Qdrant
+│           ├── services/graph.py       → Neo4j
+│           ├── services/llm.py         → Ollama / OpenAI / Gemini
+│           ├── services/memory.py      → Redis / PostgreSQL
+│           ├── services/queue.py       → Redis / RQ
+│           └── services/audit.py       → db/audit_db.py
+├── workers/*.py                   后台任务，复用 services
+│     ├── ingest_worker.py         解析、分块、向量化
+│     ├── graph_worker.py          图谱构建
+│     └── benchmark_worker.py      批量评测
+└── models/schemas.py              请求/响应模型，供 api 与 services 引用
+```
+
+#### 一次风险问答的调用组合
+
+```
+POST /api/risks/query
+  → RequestID / RequestLogging 中间件
+  → api/deps.py
+       校验 JWT → 校验组织成员 → 得到 user / role / tenant
+  → services/workflow.py
+       intake
+         → classify（规则；LLM 仅兜底）
+         → plan（按角色和问题类型选节点）
+         → secure_retrieve
+              → services/retrieval.py
+                   Qdrant filter: tenant_id + allowed_roles
+         → graph_impact（可选）
+              → services/graph.py
+                   Neo4j 多跳查询
+         → review
+              二次校验 allowed_roles、文档状态
+              发现越权 → 丢弃 + 审计
+         → synthesize
+              → services/llm.py（只接收复核后的证据）
+         → approval_gate
+              → services/approvals.py（需要时创建审批单）
+         → audit
+              → services/audit.py → db/audit_db.py
+  → services/memory.py
+        Redis 写短期会话；Postgres 写长期记忆（可选）
+  → 返回 JSON 或 SSE 事件
+```
+
+#### 数据存储分工
+
+| 存储 | 存什么 | 谁访问 |
 |---|---|---|
-| `tenants` | 租户：隔离的最上层单位 | ✅ 已建 |
-| `users` | 账号、密码哈希、角色、默认租户 | ✅ 已建 |
-| `user_tenants` | 用户与租户的多对多成员关系 | ✅ 已建 |
-| `tenant_policies` | 每个租户的审批模式 | ⬜ 待建 |
-| `documents` | 文档元数据、敏感级别、审批覆盖 | ⬜ 待建 |
-| `ingest_jobs` | 摄取任务进度与错误信息 | ⬜ 待建 |
-| `approvals` | 待审批的问答草稿与决定 | ⬜ 待建 |
-| `audit_logs` | 只追加的审计记录 | ⬜ 待建 |
+| PostgreSQL / SQLite | 组织、用户、供应商、物料、文档元数据、审批、审计、记忆 | `db/`、`services/*` |
+| Qdrant | 文档分块向量 + `tenant_id` / `allowed_roles` | `services/retrieval.py` |
+| Neo4j | 供应商、物料、工厂、运输、风险事件及关系 | `services/graph.py` |
+| Redis | 会话短期记忆、RQ 队列、进度缓存 | `services/memory.py`、`services/queue.py` |
+| 本地磁盘 | 上传的原始文件 | `services/ingest.py`、`workers/` |
 
-## 8. 模块职责地图
+#### 依赖规则
 
-```
-app/
-├── main.py                 应用工厂：日志、中间件、路由组装、启动初始化   🚧
-├── core/
-│   ├── config.py           pydantic-settings 全量配置（APP_ 前缀）        ✅
-│   ├── log_context.py      ContextVar 保存 request_id / user / tenant    ✅
-│   ├── logging_config.py   JSON 格式化 + 根 logger 配置                   ✅
-│   ├── request_id.py       请求 ID 中间件                                 ✅
-│   ├── request_logging.py  访问日志中间件（方法/路径/状态/耗时）           ✅
-│   ├── log_buffer.py       内存环形日志缓冲（供监控页）                    ⬜
-│   ├── security.py         bcrypt 密码哈希 + JWT 签发/解析                ⬜
-│   ├── security_headers.py 安全响应头中间件                               ⬜
-│   └── metrics.py          Prometheus 指标 + /metrics 响应                ⬜
-├── db/
-│   ├── session.py          Engine / SessionLocal / get_db / SQLite PRAGMA  ✅
-│   ├── models.py           ORM 表模型（8 张）                              🚧 3/8
-│   └── audit_db.py         短生命周期审计 CRUD + init_db + 默认种子        ⬜
-├── models/
-│   └── schemas.py          Pydantic 请求/响应模型                          ⬜
-├── services/
-│   ├── embeddings.py       四种 embedding provider                        ⬜
-│   ├── sparse_embed.py     BM25 稀疏向量                                  ⬜
-│   ├── retrieval.py        Qdrant 集合/写入/混合检索                       ⬜
-│   ├── llm.py              LLM 调用、流式输出、健康检查                    ⬜
-│   ├── query_rewrite.py    问题改写                                       ⬜
-│   ├── relevance_judge.py  证据充分性判断                                  ⬜
-│   ├── workflow.py         LangGraph 状态机                               ⬜
-│   ├── policy.py           输出策略正则门禁                                ⬜
-│   ├── approval_policy.py  三级审批决策链                                  ⬜
-│   ├── approvals.py        审批单 CRUD                                    ⬜
-│   ├── ingest.py           文档解析 + 智能分块                             ⬜
-│   ├── queue.py            Redis/RQ 队列                                  ⬜
-│   ├── documents.py        文档 CRUD                                      ⬜
-│   ├── users.py            用户管理                                       ⬜
-│   └── audit.py            审计读写                                       ⬜
-├── api/
-│   ├── deps.py             get_current_user / require_roles / get_tenant_id ⬜
-│   └── routes/
-│       ├── auth.py         登录 / 登出                                     ⬜
-│       ├── users.py        管理员建用户、分配租户                           ⬜
-│       ├── tenants.py      租户与策略管理                                  ⬜
-│       ├── documents.py    文档列表/详情/删除/预览                          ⬜
-│       ├── ingest.py       上传、入队、查询进度                             ⬜
-│       ├── chat.py         同步问答 + SSE 流式                             ⬜
-│       ├── approvals.py    待审批列表、审批决定、取结果                     ⬜
-│       ├── audit.py        审计列表/搜索/CSV 导出                          ⬜
-│       ├── health.py       存活/就绪探针                                   ⬜
-│       └── monitoring.py   指标与日志查看（管理员）                         ⬜
-└── workers/
-    └── ingest_worker.py    RQ 后台摄取 worker                              ⬜
+- 只能从上往下：`api → services → db/core`
+- `core/` 不 import `services/` 和 `api/`
+- `db/` 不 import `api/`
+- 路由不写业务逻辑，只做参数、权限和调用
+- worker 与路由复用同一套 `services/`，避免两份实现
 
-web/            React SPA（登录/工作台/审批/审计/管理/监控/知识库）        ⬜
-tests/          服务单测 + 路由测试 + 端到端流程                           ⬜
-ops/            Prometheus 配置、告警规则、Grafana 仪表盘                  ⬜
-```
+## 4. 固定工作流（LangGraph）
 
-## 9. 分阶段实施路线
+设计原则：**不做 LLM 自主规划**，由规则决定走哪些节点，保证路径可控、可回溯。
 
-### Phase 0 — 脚手架 ✅ 基本完成
-- [x] `pyproject.toml`、`requirements.txt`、`requirements-dev.txt`
-- [x] `.env` / `.env.example`、`.gitignore`、`.vscode`
-- [x] Python 依赖安装
-- [ ] `Dockerfile` / `docker-compose.yml` / `entrypoint.sh`
-- [ ] `alembic/` 迁移初始化
-
-**验收**：`python -c "import fastapi, sqlalchemy"` 无报错。
-
-### Phase 1 — 后端核心基建 🚧 进行中
-- [x] `core/config.py` 分组配置
-- [x] 日志子系统：上下文、JSON 格式、请求 ID、访问日志（`log_buffer` 待监控页再补）
-- [x] `db/session.py`：Engine / Session / SQLite PRAGMA / 依赖注入
-- [x] `db/models.py`：`Tenant`、`User`、`UserTenant`
-- [ ] `db/models.py`：`TenantPolicy`、`Document`、`IngestJob`、`Approval`、`AuditLog`
-- [ ] `core/security.py`：bcrypt + JWT
-- [ ] `db/audit_db.py`：`init_db` + 默认租户/演示用户种子
-- [ ] `core/metrics.py` + `core/security_headers.py`
-- [ ] `main.py`：lifespan 初始化、CORS、指标中间件
-
-**验收**：启动应用自动建表、生成默认租户和 demo 用户；请求日志带 request_id；`/api/health/live` 正常。
-
-### Phase 2 — 认证 / RBAC / 租户 / 用户 ⬜
-- `api/deps.py`：Bearer/Cookie 取 token、当前用户、角色校验、租户成员校验
-- 路由：`auth`（登录/登出 + httponly cookie）、`users`、`tenants`
-- 请求/响应 schema
-
-**验收**：demo 用户能登录拿到 JWT；普通用户访问管理员接口返回 403；伪造租户头返回 403。
-
-### Phase 3 — 检索与文档摄取 ⬜
-- Embedding：Ollama（默认 nomic-embed-text 768 维）/ SentenceTransformer / OpenAI / Gemini
-- 稀疏向量、Qdrant 集合与混合检索（RRF）
-- 文档解析（PDF/OCR/文本/图片）、智能分块
-- Redis + RQ 摄取队列、worker 生命周期
-- 文档 CRUD、上传、进度查询
-
-**验收**：上传 txt → 任务完成 → 向量入库；检索只返回本租户内容。
-
-### Phase 4 — RAG 工作流 / 策略 / 审批 / 审计 ⬜
-- 问题改写、相关性判断
-- LangGraph 状态机（rewrite → retrieve → judge → draft → policy → approval/final）
-- 输出策略正则门禁、三级审批决策链
-- `chat`（同步 + SSE）、`approvals`、`audit`、`health`、`monitoring` 路由
-- 审计写入与 CSV 导出
-
-**验收**：完整走通问答；敏感内容被拦截；高风险答案进入待审批；审计可查可导出。
-
-### Phase 5 — 前端 ⬜
-- Vite + React + TS 脚手架；`api.ts`、`types.ts`、`i18n.ts`
-- 视图模块化：Login / Workbench / Approvals / Audit / Admin / Monitoring / KnowledgeBase
-- 设计 token 与样式
-
-**验收**：浏览器完成登录 → 上传 → 问答 → 审批 → 查看审计。
-
-### Phase 6 — 可观测与运维 ⬜
-- Prometheus 配置、告警规则、Grafana 仪表盘
-- `Dockerfile`、`docker-compose.yml`（api/worker/web/postgres/redis/qdrant/prometheus/grafana）
-- 日志轮转配置、健康检查、资源限制、数据卷
-
-**验收**：`docker compose up --build -d` 后所有服务健康；Grafana 能看到请求量、延迟、检索与审批指标。
-
-### Phase 7 — 分层测试 ⬜
-- fixtures：mock LLM / mock Qdrant / fake embedder
-- 服务单测、路由测试、端到端工作流测试
-
-**验收**：`pytest tests/ -v` 全绿，不依赖外部服务。
-
-### Phase 8 — 验证与跑通 ⬜
-- 全栈冒烟：login → 上传 → 摄取 → 流式问答 → 审批 → 审计导出
-- 前端黄金路径与边界（无文档、策略拦截、审批前不返回答案）
-
-**验收**：上述流程在真实浏览器中全部走通。
-
-## 10. 当前进度快照
+### 4.1 图结构
 
 ```
-已完成  █████████░░░░░░░░░░░  Phase 0 脚手架 + Phase 1 约 60%
+intake
+  → classify（规则 + 轻量分类）
+  → plan（按角色与问题类型选节点）
+  → secure_retrieve（授权文档检索）
+  → graph_impact（图谱多跳影响分析）
+  → review（权限复核 + 策略检查）
+       ├─ 发现越权内容 → 丢弃并记录，必要时回到 retrieve
+       └─ 通过
+  → synthesize（带引用生成结论）
+  → approval_gate（高风险结论转人工审批）
+  → final / audit
 ```
 
-- 日志：4/5 个文件（差监控页用的 `log_buffer.py`）
-- 数据库：会话层完成；8 张表完成 3 张
-- 安全（bcrypt/JWT）：未开始
-- 认证路由：未开始
-- RAG / 审批 / 审计：未开始
-- 前端 / 容器化：未开始
+### 4.2 规则路由
 
-## 11. 接下来 6 步
+| 问题类型 | 角色 | 节点路径 |
+|---|---|---|
+| 文档政策类 | 任意 | `secure_retrieve → review → synthesize` |
+| 供应商风险类 | 采购/财务 | `secure_retrieve → graph_impact → review → synthesize` |
+| 物流中断类 | 物流 | `secure_retrieve → graph_impact → review → synthesize` |
+| 质量追溯类 | 质量 | `secure_retrieve → graph_impact → review → synthesize` |
+| 影响面分析 | 任意授权角色 | `graph_impact → secure_retrieve → review → synthesize` |
 
-1. `models.py` 第 3 批：`TenantPolicy`
-2. `models.py` 第 4 批：`Document` + `IngestJob`
-3. `models.py` 第 5 批：`Approval` + `AuditLog`
-4. `core/security.py`：bcrypt 哈希 + JWT
-5. `db/audit_db.py`：`init_db()` + 默认租户 / demo 用户种子
-6. `main.py` 收尾：lifespan 初始化、CORS、健康检查 → **Phase 1 完成**
+分类规则优先使用关键词、问题模板与显式参数（如前端选择的“分析类型”），LLM 只做兜底，且不决定工具权限。
 
-## 12. 与参考实现的刻意差异
+### 4.3 节点职责
 
-| 项目 | 参考实现 | 本项目 | 原因 |
+| 节点 | 输入 | 输出 | 说明 |
 |---|---|---|---|
-| 密码哈希 | `passlib` | 直接用 `bcrypt` | passlib 不再维护，Python 3.13 报错 |
-| Embedding | BGE / sentence-transformers | 默认 Ollama `nomic-embed-text`（768 维） | 本机没有 torch，Ollama 已就绪 |
-| 文档审批覆盖值 | 文档写 `none`，代码判断 `never` | 统一 `always` / `never` | 修正参考实现的不一致 |
-| 前端结构 | 单体 `App.tsx` | 按视图拆模块 | 可维护性 |
-| 部署自动化 | AWS/Terraform/ECS | 跳过 | 本阶段聚焦应用本体 |
+| `intake` | 问题、角色、组织 | 标准化请求 | 写入 request_id、run_id |
+| `classify` | 问题 | 类型、实体（供应商/物料/地点） | 规则优先，记录判定依据 |
+| `plan` | 类型、角色 | 节点序列 | 决定是否做图谱分析 |
+| `secure_retrieve` | 查询、角色 | 授权证据块 | Qdrant payload 过滤 |
+| `graph_impact` | 实体、风险事件 | 影响路径与节点 | Neo4j 多跳查询 |
+| `review` | 证据、路径、角色 | 通过/剔除 | 二次权限校验与敏感检查 |
+| `synthesize` | 证据、路径 | 带引用结论 | 引用文档与图谱路径 |
+| `approval_gate` | 结论、风险级别 | 审批单或最终答案 | 复用三级审批思路 |
+| `audit` | 全流程 | 审计记录 | 只追加 |
 
-## 13. 运行方式（当前可用部分）
+## 5. SecureRAG：权限约束检索
 
-```bash
-# 后端（当前只有健康检查）
-uvicorn app.main:app --reload --port 8000
+### 5.1 权限元数据
 
-# 健康检查
-curl http://127.0.0.1:8000/api/health/live
-# → {"status":"ok","environment":"development"}
+Qdrant 每个 chunk 的 payload：
 
-# 访问日志（查看请求 ID）
-curl -H "X-Request-ID: my-test-001" http://127.0.0.1:8000/api/health/live
-
-# 前端（Phase 5 后）
-cd web && npm run dev
-
-# 测试（Phase 7 后）
-PYTHONPATH=. pytest tests/ -v
-
-# 整栈（Phase 6 后）
-docker compose up --build -d
+```json
+{
+  "tenant_id": "org-acme",
+  "document_id": "doc-123",
+  "chunk_index": 4,
+  "page": 2,
+  "text": "...",
+  "allowed_roles": ["procurement", "finance"],
+  "sensitivity": "high",
+  "source_type": "contract"
+}
 ```
+
+### 5.2 检索前过滤
+
+查询时构造 Qdrant filter：
+
+```
+must:     tenant_id == 当前组织
+must:     allowed_roles match any [当前用户角色]
+可选:     source_type / sensitivity / 时间范围
+```
+
+### 5.3 检索后复核（Review Node）
+
+即使向量库过滤正确，也要在应用层再校验一次：
+
+- 逐条检查 chunk 的 `allowed_roles` 是否包含当前角色；
+- 检查文档状态（已删除/已过期文档不进入上下文）；
+- 命中越权内容时丢弃并记录审计，不发送给 LLM；
+- 越权丢弃比例超过阈值时，标记本次查询异常。
+
+### 5.4 Benchmark 指标
+
+- 构造「角色 A 提问，但答案只存在于角色 B 文档」的用例；
+- 指标：越权拦截率（目标 100%）、合法召回率、丢弃原因分布。
+
+## 6. GraphRAG：供应链多跳影响分析
+
+### 6.1 图模型（Neo4j）
+
+节点命名与参考实现 SentinelSCM 对齐，便于对照和复用其传导规则：
+
+| 节点 | 关键属性 |
+|---|---|
+| `Company` | company_id、name |
+| `Supplier` | supplier_id、name、country、tier、risk_score、is_available |
+| `Material` | material_id、name、sku、criticality、monthly_demand |
+| `Factory` | site_id、name、country |
+| `Warehouse` | site_id、name、country |
+| `Port` | port_id、name、country |
+| `Region` | region_id、name |
+| `ShippingRoute` | route_id、name、transit_days_normal/current、is_disrupted、disruption_type |
+| `Shipment` | shipment_id、status、eta、quantity |
+| `DisruptionEvent` | event_id、name、type、severity、start/end、is_active |
+
+关系：
+
+```
+(Company)-[:OPERATES]->(Factory | Warehouse)
+(Factory)-[:REQUIRES]->(Material)
+(Supplier)-[:SUPPLIES {share, is_primary}]->(Material)
+(Supplier)-[:LOCATED_IN]->(Region)
+(Supplier)-[:SHIPS_VIA]->(Port)
+(Port)-[:ROUTE_TO {route_id}]->(Port)
+(DisruptionEvent)-[:AFFECTS]->(Region | Port | ShippingRoute)
+(DisruptionEvent)-[:DIRECTLY_IMPACTS]->(Supplier)
+(Shipment)-[:FROM]->(Port)
+(Shipment)-[:TO]->(Port)
+(Shipment)-[:CARRIES]->(Material)
+```
+
+### 6.2 风险传导规则
+
+参考 SentinelSCM 的做法，四类路径用**纯函数**实现，不依赖 Neo4j 或 LLM，便于单测和独立 ground truth：
+
+| 路径 | 条件 | 结果 |
+|---|---|---|
+| DIRECT | 事件 `DIRECTLY_IMPACTS` 供应商 | 供应商不可用，CRITICAL |
+| REGION | 供应商 `LOCATED_IN` 受影响的区域 | 按事件严重度评级 |
+| PORT | 供应商 `SHIPS_VIA` 受影响的港口 | 按港口或事件严重度评级 |
+| ROUTE | 供应商航线被 `AFFECTS` | BLOCKED → 无限期延误；REROUTED → 额外天数 = 当前 - 正常 |
+
+最终风险等级 = 所有命中路径中的最高严重度；延误天数取最大值。
+
+### 6.3 多跳查询示例
+
+风险问题：「越南工厂停工，影响哪些采购订单？」
+
+```
+DisruptionEvent -[:AFFECTS]-> Region/Port
+  ←[:LOCATED_IN | :SHIPS_VIA]- Supplier
+    -[:SUPPLIES]-> Material
+      ←[:REQUIRES]- Factory
+Shipment -[:FROM/TO]-> Port
+Shipment -[:CARRIES]-> Material
+```
+
+返回：
+
+- 受影响物料与关键性
+- 受影响供应商、占比与不可用状态
+- 在途/待发运订单
+- 每一跳的关系类型与依据
+
+### 6.4 路径可信度
+
+- 只返回有边权重的路径；
+- 记录跳数与关系类型；
+- 低置信度路径标注“需人工确认”；
+- Benchmark 用路径命中率（与独立 ground truth 对比）。
+
+## 7. Memory：短期与长期记忆
+
+| 类型 | 存储 | 内容 | 生命周期 |
+|---|---|---|---|
+| 短期 | Redis | 最近 N 轮问题、检索摘要、当前分析对象 | TTL 1 小时 |
+| 长期 | PostgreSQL | 用户偏好、关注供应商、历史风险结论、审批记录 | 持久 |
+
+规则：
+
+- 记忆按 `tenant_id + user_id` 隔离；
+- 不把高敏感文档原文写入记忆，只存摘要与引用；
+- 长期记忆写入前做一次敏感信息检查；
+- 用户可查看与删除自己的长期记忆。
+
+## 8. 数据模型
+
+### 8.1 已有表（Phase 1）
+
+| 表 | 说明 | 状态 |
+|---|---|---|
+| `tenants` | 组织/企业，隔离根 | ✅ |
+| `users` | 用户、密码哈希、角色 | ✅ |
+| `user_tenants` | 用户与组织多对多 | ✅ |
+
+`users.role` 取值扩展为：`admin` / `procurement` / `logistics` / `quality` / `finance`。
+
+### 8.2 待建业务表
+
+| 表 | 关键字段 |
+|---|---|
+| `suppliers` | supplier_id、tenant_id、name、country、tier、risk_score、is_available |
+| `materials` | material_id、tenant_id、name、sku、criticality、monthly_demand |
+| `factories` | site_id、tenant_id、name、country |
+| `warehouses` | site_id、tenant_id、name、country |
+| `ports` | port_id、tenant_id、name、country |
+| `regions` | region_id、tenant_id、name |
+| `shipping_routes` | route_id、tenant_id、origin_port_id、dest_port_id、transit_days_normal/current、is_disrupted、disruption_type |
+| `shipments` | shipment_id、tenant_id、supplier_id、material_id、origin_port_id、dest_port_id、status、eta、quantity |
+| `disruption_events` | event_id、tenant_id、name、type、severity、start/end、is_active、description |
+| `supplier_materials` | supplier_id、material_id、share、is_primary |
+| `documents` | document_id、tenant_id、filename、source_type、sensitivity、status、allowed_roles（同步写入 Qdrant） |
+| `ingest_jobs` | job_id、tenant_id、status、progress、error |
+| `conversations` | session_id、tenant_id、user_id、created_at |
+| `messages` | message_id、session_id、role、content、cited_docs、created_at |
+| `memory_facts` | fact_id、tenant_id、user_id、kind、content、source、confidence |
+| `approvals` | approval_id、tenant_id、run_id、status、decided_by、note |
+| `audit_logs` | 只追加：timestamp、tenant_id、user、action、input/output、metadata |
+| `tenant_policies` | approval_mode、risk_threshold、updated_by |
+| `benchmark_cases` | case_id、tenant_id、role、question、expected_suppliers、expected_paths、forbidden_docs |
+| `benchmark_runs` | run_id、case_set、metrics_json、created_at |
+
+> 图关系存 Neo4j，PostgreSQL 保留实体主数据；两边通过业务 ID 对应。
+
+## 9. API 设计（草案）
+
+| 方法 | 路径 | 角色 | 说明 |
+|---|---|---|---|
+| POST | `/api/auth/login` | 公开 | 登录，返回 JWT |
+| POST | `/api/risks/query` | 任意 | 同步风险问答 |
+| POST | `/api/risks/stream` | 任意 | SSE：工作流进度与 token |
+| GET | `/api/suppliers` | procurement/finance | 供应商列表与风险分 |
+| GET | `/api/suppliers/{id}/impact` | 授权角色 | 图谱影响分析 |
+| GET | `/api/graph/impact` | 授权角色 | 按风险事件查询多跳路径 |
+| POST | `/api/documents` | 授权角色 | 上传并入库 |
+| GET | `/api/documents` | 授权角色 | 按权限返回可见文档 |
+| GET | `/api/reviews` | admin/审核角色 | 待复核结论 |
+| POST | `/api/reviews/{id}/decision` | admin/审核角色 | 通过/驳回 |
+| GET | `/api/approvals` | admin | 审批列表 |
+| POST | `/api/approvals/{id}/decision` | admin | 审批决定 |
+| GET | `/api/benchmark/runs` | admin | 评测结果 |
+| POST | `/api/benchmark/runs` | admin | 发起评测 |
+| GET | `/api/audit` | admin | 审计查询与导出 |
+| GET | `/api/health/live`、`/api/health/ready` | 公开 | 探针 |
+
+SSE 事件：`run_started`、`classify_done`、`retrieve_done`、`graph_done`、`review_done`、`token`、`approval_required`、`done`、`error`。
+
+## 10. 前端页面
+
+| 页面 | 功能 |
+|---|---|
+| 登录 | 账号密码、组织选择、角色展示 |
+| 风险看板 | 高风险供应商、风险事件、待审批数量 |
+| 风险问答 | 提问、工作流进度、引用面板、图谱路径展示 |
+| 供应商图谱 | 节点搜索、多跳路径高亮、风险事件叠加 |
+| 复核台 | 待复核结论、证据、通过/驳回 |
+| Benchmark | 用例管理、运行评测、指标对比 |
+| 审计 | 条件搜索、分页、CSV 导出 |
+| 管理 | 组织、用户、角色、策略、监控 |
+
+## 11. 可观测与安全
+
+- 日志：JSON + `request_id`，工作流追加 `run_id`，不记录文档原文与完整证据；
+- 指标：查询量、各节点耗时、LLM 调用、越权拦截数、审批积压、Benchmark 指标；
+- 安全：上传白名单与大小限制、路径清洗、租户与角色双重过滤、Prompt 注入防护、审计导出公式转义；
+- 权限：接口级 RBAC + 数据级过滤，跨组织统一返回 403，不泄露资源是否存在。
+
+## 12. 实施路线与验收
+
+### Phase 0 脚手架 ✅
+- 依赖、配置、`.gitignore`、本地虚拟环境
+- 待补：Docker、Alembic
+
+### Phase 1 后端基建 🚧
+- [x] 配置
+- [x] 日志（4/5，`log_buffer` 待监控页）
+- [x] 数据库会话
+- [x] `tenants` / `users` / `user_tenants`
+- [ ] 安全（bcrypt + JWT）
+- [ ] `audit_db`、初始化种子
+- [ ] 指标、安全响应头、应用初始化收尾
+
+**验收**：启动自动建表、生成默认组织与管理员；请求日志带 request_id。
+
+### M1 SecureRAG + 固定工作流
+- RBAC 依赖与角色校验
+- 文档上传、分块、向量化；payload 写入 `allowed_roles`
+- Qdrant 检索过滤 + Review Node
+- LangGraph 固定工作流（无图谱）
+- 引用展示、审批、审计
+- 基础前端：登录、问答、复核
+
+**验收**：角色 A 无法召回角色 B 的文档；越权用例拦截率 100%；答案带可点击引用。
+
+### M2 GraphRAG
+- Neo4j 图模型与导入脚本
+- 多跳影响查询
+- 图谱界面与路径高亮
+- 与 SecureRAG 结果合并
+
+**验收**：给定风险事件，返回受影响物料、供应商、订单路径；Benchmark 路径命中率达到约定阈值。
+
+### M3 Memory + Benchmark + 交付
+- Redis 短期记忆、PostgreSQL 长期记忆
+- Benchmark 用例集与指标、CI 回归门禁
+- Prometheus/Grafana、Docker Compose
+- 分层测试、README 与演示脚本
+
+**验收**：多轮追问能利用历史；Benchmark 可复现；`docker compose up` 一键启动。
+
+## 13. 当前进度快照
+
+```
+Phase 0  ✅
+Phase 1  🚧  配置/日志/会话层完成，3 张基础表完成
+M1–M3    ⬜
+```
+
+## 14. 主要风险与对策
+
+| 风险 | 对策 |
+|---|---|
+| 范围过大 | 严格按 M1 → M2 → M3，先闭环再扩展 |
+| 图谱数据不足 | 用公开供应链数据 + 自造演示数据，明确标注模拟 |
+| 权限越权 | 双层过滤 + Review Node + 越权用例测试 |
+| LLM 判定不稳定 | 规则路由 + 结构化输出 + 人工审批兜底 |
+| Benchmark 数字不可信 | 用例与脚本入库，指标可复现 |
+| 记忆泄露 | 按用户/组织隔离，只存摘要，写入前敏感检查 |
+
+## 15. 新增配置项（草案）
+
+```ini
+# Neo4j
+APP_NEO4J_URI=bolt://localhost:7687
+APP_NEO4J_USER=neo4j
+APP_NEO4J_PASSWORD=change-me
+APP_NEO4J_DATABASE=neo4j
+
+# SecureRAG
+APP_SECURE_RAG_ENFORCE_ROLES=true
+APP_SECURE_RAG_REVIEW_MAX_RETRIES=1
+APP_SECURE_RAG_MAX_DROP_RATIO=0.5
+
+# Memory
+APP_MEMORY_SESSION_TTL_SECONDS=3600
+APP_MEMORY_MAX_TURNS=10
+APP_MEMORY_LONG_TERM_ENABLED=true
+
+# Benchmark
+APP_BENCHMARK_MAX_CASES=200
+APP_BENCHMARK_MIN_HIT_RATE=0.8
+APP_BENCHMARK_REQUIRE_ZERO_LEAK=true
+```
+
+## 16. 参考实现：SentinelSCM 对照
+
+本地只读参考：`E:\LLMproject\Multi-Agent Supply Chain Control Tower\sentinel-scm`（MIT）。
+只吸收设计与方法，不复制代码。
+
+### 16.1 值得吸收
+
+| 设计 | 参考位置 | 在本项目中的用法 |
+|---|---|---|
+| 供应链图谱节点与关系 | `backend/database/seed.py` | 第 6.1 节的图模型直接对齐（Supplier / Material / Port / Region / Route / DisruptionEvent / Factory / Warehouse） |
+| 四类风险传导规则 | `eval/ground_truth.py` | 第 6.2 节的 DIRECT / REGION / PORT / ROUTE 规则，用纯函数实现 |
+| 工作流状态与证据结构 | `backend/agents/state.py` | `Evidence {source, fact, impact}` 作为结论的标准结构 |
+| 人工审批中断 | `backend/agents/graph.py` 的 `interrupt_before` | LangGraph checkpointer + `interrupt`，审批后恢复 |
+| 独立 ground truth | `backend/eval/ground_truth.py` | 评测脚本不 import 服务代码，纯 Python 重算，防止「自己测自己」 |
+| 场景分层评测 | `backend/eval/scenarios.py`、`metrics.py` | 单事件 / 双事件 / 三事件 / held-out；precision / recall / F1 / 风险等级准确率 |
+| 单 Agent 基线 | `backend/eval/baseline.py` | 与固定工作流对比，证明图谱推理的价值 |
+| 工具边界 | `backend/mcp_server/tools/*` | 风险评估、替代供应商、库存 runway、缓解成本拆成独立 service |
+
+### 16.2 不照搬
+
+| 设计 | 原因 |
+|---|---|
+| 五 Agent 自由协作 + Planning/Finance 协商循环 | 路径不可控、调试成本高；本项目采用规则路由的固定工作流 |
+| MCP 协议调用 | 增加传输层调试成本；MVP 用 service 直接调用，后续再抽协议 |
+| 实时网页搜索 | 外部依赖、成本与 SSRF 风险；先用手工/CSV 风险事件 |
+| Qwen 特定实现 | 保持 provider 无关，继续支持 Ollama / OpenAI / Gemini |
+| 内存 checkpointer 作为唯一状态 | 审批、审计必须持久化到 PostgreSQL |
+
+### 16.3 差异化定位
+
+参考实现 README 自己列出企业化缺口：**tenant isolation、authentication、persistent audit history、production data connectors**。
+
+SupplyGuard 的增量正是这四点：
+
+- 组织级隔离 + RBAC
+- SecureRAG：文档级权限元数据 + 检索后复核
+- 持久化审批单与只追加审计
+- 文档、图谱、结构化数据三类输入连接
+
+一句话：**SentinelSCM 证明「图谱 + Agent 推理」可行；SupplyGuard 补上「权限、证据、审批、审计」这一层。**
+
+### 16.4 评测方法沿用
+
+1. 场景集：单事件、事件对、事件三连、held-out 新事件，至少 25 条；
+2. ground truth：纯 Python 基于种子数据独立计算，不调用 Neo4j / LLM / 服务代码；
+3. 指标：供应商识别 precision / recall / F1、风险等级准确率、图谱路径命中率；
+4. 基线：同样的输入交给单次 LLM 调用（无工具、无遍历），对比差距；
+5. 新增本项目指标：越权拦截率（目标 100%）、引用覆盖率、审批通过率；
+6. 结果写入 `benchmark_runs`，README 只引用可复现的数字。
 
 ---
 
-> 维护约定：每完成一批表或一个 Phase，更新第 9、10、11 节的勾选和进度。
+> 维护约定：每完成一个里程碑，更新 README 状态表与本文件第 12–13 节。
