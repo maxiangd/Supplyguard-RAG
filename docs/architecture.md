@@ -157,7 +157,7 @@ POST /api/risks/query
 
 | 存储 | 存什么 | 谁访问 |
 |---|---|---|
-| PostgreSQL / SQLite | 用户、供应商、物料、文档元数据、审批、审计、记忆 | `db/`、`services/*` |
+| PostgreSQL | 用户、供应商、物料、文档元数据、审批、审计、记忆 | `db/`、`services/*` |
 | Qdrant | 文档分块向量 + `allowed_roles` / `sensitivity` | `services/retrieval.py` |
 | Neo4j | 供应商、物料、工厂、运输、风险事件及关系 | `services/graph.py` |
 | Redis | 会话短期记忆、RQ 队列、进度缓存 | `services/memory.py`、`services/queue.py` |

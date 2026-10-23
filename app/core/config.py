@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     demo_password: str = "catl123"
 
     # 数据库
-    database_url: str = "sqlite:///./data/app.db"
+    database_url: str = "postgresql+psycopg://supplyguard:123456@127.0.0.1:5432/supplyguard"
 
     # 向量库
     qdrant_url: str = "http://localhost:6333"

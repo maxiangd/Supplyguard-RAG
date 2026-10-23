@@ -50,7 +50,7 @@
 ## 技术栈
 
 - **后端**：Python 3.11+ / FastAPI / LangGraph / SQLAlchemy 2.0
-- **数据**：PostgreSQL 或 SQLite / Qdrant（文档向量）/ Neo4j（供应链图谱）/ Redis + RQ
+- **数据**：PostgreSQL / Qdrant（文档向量）/ Neo4j（供应链图谱）/ Redis + RQ
 - **模型**：Ollama（默认）、OpenAI、Gemini；Embedding 支持 nomic-embed-text 等
 - **前端**：Vue 3 + Vite + JavaScript + Element Plus（M1 起逐步）
 - **可观测**：JSON 日志、请求 ID、prometheus-client + Grafana
