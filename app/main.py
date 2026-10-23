@@ -48,7 +48,7 @@ def create_app() -> FastAPI:
     app.include_router(auth_router, prefix=settings.api_prefix)
 
     @app.get("/api/health/live", tags=["health"])
-    def live() -> dict:
+    def liveness_check() -> dict:
         """存活探针，不检查外部依赖。"""
         return {"status": "ok", "environment": settings.env}
 

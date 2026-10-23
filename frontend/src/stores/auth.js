@@ -24,8 +24,8 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.setItem('user', JSON.stringify(data.user))
   }
 
-  async function fetchMe() {
-    const data = await client.get('/auth/me')
+  async function fetchCurrentUser() {
+    const data = await client.get('/auth/current-user')
     user.value = data
     localStorage.setItem('user', JSON.stringify(data))
   }
@@ -38,5 +38,5 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('user')
   }
 
-  return { token, user, isLoggedIn, role, login, fetchMe, logout }
+  return { token, user, isLoggedIn, role, login, fetchCurrentUser, logout }
 })

@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.core.security import TokenError, TokenPayload, decode_access_token
 from app.db.models import User
-from app.db.session import get_db
+from app.db.session import get_database_session
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
@@ -20,7 +20,7 @@ def _unauthorized(detail: str) -> HTTPException:
     )
 
 
-def get_current_payload(
+def get_token_payload(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
 ) -> TokenPayload:
     """解析 Authorization 头中的 JWT。"""
@@ -33,8 +33,8 @@ def get_current_payload(
 
 
 def get_current_user(
-    payload: TokenPayload = Depends(get_current_payload),
-    db: Session = Depends(get_db),
+    payload: TokenPayload = Depends(get_token_payload),
+    db: Session = Depends(get_database_session),
 ) -> User:
     """加载令牌对应的用户。"""
     user = db.get(User, payload.user_id)
@@ -46,7 +46,7 @@ def get_current_user(
 def require_roles(*roles: str):
     """只允许指定角色访问。"""
 
-    def checker(user: User = Depends(get_current_user)) -> User:
+    def role_checker(user: User = Depends(get_current_user)) -> User:
         """校验用户角色是否在允许列表中。"""
         if user.role not in roles:
             raise HTTPException(
@@ -54,4 +54,4 @@ def require_roles(*roles: str):
             )
         return user
 
-    return checker
+    return role_checker

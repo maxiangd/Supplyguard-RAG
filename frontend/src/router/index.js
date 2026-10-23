@@ -40,7 +40,7 @@ router.beforeEach(async (to) => {
   // 每次刷新页面后用后端校验一次令牌，清掉历史遗留的无效 token
   if (to.name !== 'login' && auth.isLoggedIn && !sessionValidated) {
     try {
-      await auth.fetchMe()
+      await auth.fetchCurrentUser()
       sessionValidated = true
     } catch {
       return { name: 'login' }

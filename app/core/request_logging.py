@@ -26,8 +26,8 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
                 source_logger="app.request",
                 method=request.method,
                 path=request.url.path,
-                duration_ms=_elapsed_ms(start),
-                client_ip=_client_ip(request),
+                duration_ms=_elapsed_milliseconds(start),
+                client_ip_address=_client_ip_address(request),
             ).exception("请求处理异常")
             raise
 
@@ -48,17 +48,17 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             method=request.method,
             path=path,
             status_code=status,
-            duration_ms=_elapsed_ms(start),
-            client_ip=_client_ip(request),
+            duration_ms=_elapsed_milliseconds(start),
+            client_ip_address=_client_ip_address(request),
         ).log(level, "{} {} -> {}", request.method, path, status)
         return response
 
 
-def _elapsed_ms(start: float) -> float:
+def _elapsed_milliseconds(start: float) -> float:
     """计算从 start 到现在的毫秒数。"""
     return round((time.perf_counter() - start) * 1000, 2)
 
 
-def _client_ip(request: Request) -> str | None:
+def _client_ip_address(request: Request) -> str | None:
     """返回客户端 IP，取不到时返回 None。"""
     return request.client.host if request.client else None

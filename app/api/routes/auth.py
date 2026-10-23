@@ -7,14 +7,16 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_user
 from app.core.security import create_access_token, verify_password
 from app.db.models import User
-from app.db.session import get_db
-from app.models.schemas import LoginRequest, TokenResponse, UserOut
+from app.db.session import get_database_session
+from app.models.schemas import LoginRequest, TokenResponse, UserResponse
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/login", response_model=TokenResponse)
-def login(payload: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse:
+def login(
+    payload: LoginRequest, db: Session = Depends(get_database_session)
+) -> TokenResponse:
     """校验账号密码并签发 JWT。"""
     user = db.scalar(select(User).where(User.username == payload.username))
     if user is None or not verify_password(payload.password, user.password_hash):
@@ -26,7 +28,7 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse
     token = create_access_token(user.user_id, role=user.role)
     return TokenResponse(
         access_token=token,
-        user=UserOut(
+        user=UserResponse(
             user_id=user.user_id,
             username=user.username,
             role=user.role,
@@ -34,10 +36,12 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse
     )
 
 
-@router.get("/me", response_model=UserOut)
-def me(current_user: User = Depends(get_current_user)) -> UserOut:
+@router.get("/current-user", response_model=UserResponse)
+def get_current_user_info(
+    current_user: User = Depends(get_current_user),
+) -> UserResponse:
     """返回当前登录用户。"""
-    return UserOut(
+    return UserResponse(
         user_id=current_user.user_id,
         username=current_user.username,
         role=current_user.role,

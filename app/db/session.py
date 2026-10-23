@@ -18,7 +18,7 @@ SessionLocal = sessionmaker(
 )
 
 
-def get_db() -> Generator[Session, None, None]:
+def get_database_session() -> Generator[Session, None, None]:
     """每个请求一个数据库会话，结束后自动关闭。"""
     with SessionLocal() as session:
         yield session

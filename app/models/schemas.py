@@ -3,7 +3,7 @@
 from pydantic import BaseModel, Field
 
 
-class UserOut(BaseModel):
+class UserResponse(BaseModel):
     """返回给前端的用户信息，不含密码哈希。"""
 
     user_id: str
@@ -23,4 +23,4 @@ class TokenResponse(BaseModel):
 
     access_token: str
     token_type: str = "bearer"
-    user: UserOut
+    user: UserResponse

@@ -17,18 +17,18 @@
 | `Depends(func)` | 声明依赖 | FastAPI 自动调用 `func` 并把返回值传给参数 |
 | `HTTPException(status_code=..., detail=...)` | 主动返回错误 | `raise` 后函数立即结束 |
 | `status.HTTP_401_UNAUTHORIZED` | 状态码常量 | 比写数字 401 可读 |
-| `response_model=UserOut` | 声明响应结构 | 多余字段会被过滤，并出现在 `/docs` |
+| `response_model=UserResponse` | 声明响应结构 | 多余字段会被过滤，并出现在 `/docs` |
 
 示例：
 
 ```python
 @router.post("/login", response_model=TokenResponse)
-def login(payload: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse:
+def login(payload: LoginRequest, db: Session = Depends(get_database_session)) -> TokenResponse:
     ...
 ```
 
 - `payload`：FastAPI 从 JSON 请求体解析并校验；
-- `db`：由 `get_db` 提供，请求结束自动关闭。
+- `db`：由 `get_database_session` 提供，请求结束自动关闭。
 
 ---
 
