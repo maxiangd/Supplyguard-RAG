@@ -21,11 +21,22 @@ const menus = [
   { path: '/chat', label: '风险问答', icon: ChatDotRound },
   { path: '/suppliers', label: '供应商图谱', icon: Share },
   { path: '/review', label: '复核台', icon: Checked },
-  { path: '/benchmark', label: 'Benchmark', icon: DataAnalysis },
-  { path: '/audit', label: '审计', icon: Document },
-  { path: '/admin', label: '管理', icon: Setting },
+  { path: '/benchmark', label: 'Benchmark', icon: DataAnalysis, roles: ['admin'] },
+  { path: '/audit', label: '审计', icon: Document, roles: ['admin'] },
+  { path: '/admin', label: '管理', icon: Setting, roles: ['admin'] },
 ]
 
+const roleLabels = {
+  admin: '管理员',
+  procurement: '采购',
+  logistics: '物流',
+  quality: '质量',
+  finance: '财务',
+}
+
+const visibleMenus = computed(() =>
+  menus.filter((menu) => !menu.roles || menu.roles.includes(auth.role)),
+)
 const activeMenu = computed(() => route.path)
 const currentTitle = computed(
   () => menus.find((menu) => menu.path === route.path)?.label ?? '',
@@ -42,7 +53,7 @@ function handleLogout() {
     <el-aside width="220px" class="aside">
       <div class="logo">SupplyGuard</div>
       <el-menu :default-active="activeMenu" router class="menu">
-        <el-menu-item v-for="menu in menus" :key="menu.path" :index="menu.path">
+        <el-menu-item v-for="menu in visibleMenus" :key="menu.path" :index="menu.path">
           <el-icon><component :is="menu.icon" /></el-icon>
           <span>{{ menu.label }}</span>
         </el-menu-item>
@@ -55,7 +66,10 @@ function handleLogout() {
         <div class="header-right">
           <span class="company">宁德时代供应链</span>
           <el-dropdown @command="handleLogout">
-            <span class="user">{{ auth.user?.username ?? '未登录' }}</span>
+            <span class="user">
+              {{ auth.user?.username ?? '未登录' }}
+              <span class="role">{{ roleLabels[auth.role] ?? '' }}</span>
+            </span>
             <template #dropdown>
               <el-dropdown-menu>
                 <el-dropdown-item command="logout">退出登录</el-dropdown-item>
@@ -126,6 +140,12 @@ function handleLogout() {
 .user {
   cursor: pointer;
   color: #303133;
+}
+
+.role {
+  margin-left: 6px;
+  color: #909399;
+  font-size: 12px;
 }
 
 .company {

@@ -13,9 +13,24 @@ const routes = [
       { path: 'chat', name: 'chat', component: () => import('../views/ChatView.vue') },
       { path: 'suppliers', name: 'suppliers', component: () => import('../views/SuppliersView.vue') },
       { path: 'review', name: 'review', component: () => import('../views/ReviewView.vue') },
-      { path: 'benchmark', name: 'benchmark', component: () => import('../views/BenchmarkView.vue') },
-      { path: 'audit', name: 'audit', component: () => import('../views/AuditView.vue') },
-      { path: 'admin', name: 'admin', component: () => import('../views/AdminView.vue') },
+      {
+        path: 'benchmark',
+        name: 'benchmark',
+        component: () => import('../views/BenchmarkView.vue'),
+        meta: { roles: ['admin'] },
+      },
+      {
+        path: 'audit',
+        name: 'audit',
+        component: () => import('../views/AuditView.vue'),
+        meta: { roles: ['admin'] },
+      },
+      {
+        path: 'admin',
+        name: 'admin',
+        component: () => import('../views/AdminView.vue'),
+        meta: { roles: ['admin'] },
+      },
     ],
   },
 ]
@@ -45,6 +60,11 @@ router.beforeEach(async (to) => {
     } catch {
       return { name: 'login' }
     }
+  }
+
+  // 角色不匹配时回到看板，避免直接输入 URL 越权访问
+  if (to.meta.roles && !to.meta.roles.includes(auth.role)) {
+    return { name: 'dashboard' }
   }
 })
 
