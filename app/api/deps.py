@@ -12,6 +12,7 @@ bearer_scheme = HTTPBearer(auto_error=False)
 
 
 def _unauthorized(detail: str) -> HTTPException:
+    """构造带 WWW-Authenticate 头的 401 响应。"""
     return HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail=detail,
@@ -46,6 +47,7 @@ def require_roles(*roles: str):
     """只允许指定角色访问。"""
 
     def checker(user: User = Depends(get_current_user)) -> User:
+        """校验用户角色是否在允许列表中。"""
         if user.role not in roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN, detail="权限不足"

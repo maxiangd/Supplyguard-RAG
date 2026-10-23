@@ -13,7 +13,10 @@ _QUIET_PATHS = {"/api/health/live", "/api/health/ready"}
 
 
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
+    """记录每个请求的方法、路径、状态码、耗时与客户端 IP。"""
+
     async def dispatch(self, request: Request, call_next):
+        """执行下游请求并按状态码选择日志级别。"""
         start = time.perf_counter()
 
         try:
@@ -52,8 +55,10 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
 
 
 def _elapsed_ms(start: float) -> float:
+    """计算从 start 到现在的毫秒数。"""
     return round((time.perf_counter() - start) * 1000, 2)
 
 
 def _client_ip(request: Request) -> str | None:
+    """返回客户端 IP，取不到时返回 None。"""
     return request.client.host if request.client else None

@@ -10,7 +10,6 @@ from typing import Any
 from loguru import logger
 
 from app.core.config import settings
-from app.core.log_context import get_request_id, get_user
 
 _STANDARD_FIELDS = {
     "name", "msg", "args", "levelname", "levelno", "pathname", "filename",
@@ -20,12 +19,8 @@ _STANDARD_FIELDS = {
 }
 
 
-def _inject_context(record: dict) -> None:
-    record["extra"].setdefault("request_id", get_request_id())
-    record["extra"].setdefault("user", get_user())
-
-
 def _json_sink(message: Any) -> None:
+    """把一条 loguru 日志写成平铺 JSON 输出到终端。"""
     record = message.record
     source_logger = record["extra"].pop("source_logger", None)
     payload: dict[str, Any] = {
@@ -46,9 +41,10 @@ def _json_sink(message: Any) -> None:
 
 
 class InterceptHandler(logging.Handler):
-    """把标准库 logging 转发给 loguru。"""
+    """把标准库 logging 的记录转发给 loguru。"""
 
     def emit(self, record: logging.LogRecord) -> None:
+        """处理一条标准库日志记录。"""
         try:
             level = logger.level(record.levelname).name
         except ValueError:
@@ -70,12 +66,12 @@ class InterceptHandler(logging.Handler):
 
 
 def setup_logging() -> None:
+    """配置 loguru 与标准库日志，应用启动时调用一次。"""
     reconfigure = getattr(sys.stdout, "reconfigure", None)
     if reconfigure:
         reconfigure(encoding="utf-8")
 
     logger.remove()
-    logger.configure(patcher=_inject_context)
     logger.add(_json_sink, level=settings.log_level.upper())
 
     root = logging.getLogger()

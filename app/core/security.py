@@ -17,12 +17,15 @@ class TokenError(Exception):
 
 @dataclass(frozen=True)
 class TokenPayload:
+    """从 JWT 解析出的身份信息。"""
+
     user_id: str
     role: str | None
     expires_at: datetime
 
 
 def _password_bytes(password: str) -> bytes:
+    """把密码转成字节并检查空值与 72 字节上限。"""
     data = password.encode("utf-8")
     if not data:
         raise ValueError("密码不能为空")

@@ -6,6 +6,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    """应用配置，字段对应 APP_ 前缀的环境变量。"""
+
     model_config = SettingsConfigDict(
         env_prefix="APP_", env_file=".env", extra="ignore"
     )
@@ -78,11 +80,13 @@ class Settings(BaseSettings):
 
     @property
     def cors_origin_list(self) -> list[str]:
+        """把逗号分隔的 CORS 来源转成列表。"""
         return [item.strip() for item in self.cors_origins.split(",") if item.strip()]
 
 
 @lru_cache
 def get_settings() -> Settings:
+    """返回全局唯一的配置实例。"""
     return Settings()
 
 
