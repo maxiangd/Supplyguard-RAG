@@ -1,7 +1,11 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
-import { ElMessage } from 'element-plus'
-import { createUser, fetchAdminData } from '../api/mock'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { createUser, deleteUser, fetchUsers, updateUser } from '../api/users'
+import { fetchAdminData } from '../api/mock'
+import { useAuthStore } from '../stores/auth'
+
+const auth = useAuthStore()
 
 const loading = ref(true)
 const activeTab = ref('users')
@@ -14,8 +18,19 @@ const logs = ref([])
 const userDialog = ref(false)
 const userForm = reactive({
   username: '',
+  password: '',
   role: 'procurement',
 })
+
+const editDialog = ref(false)
+const editForm = reactive({
+  user_id: '',
+  username: '',
+  role: 'procurement',
+  is_active: true,
+})
+
+const isSelf = (user) => user.user_id === auth.user?.user_id
 
 const roleLabels = {
   admin: '管理员',
@@ -27,8 +42,8 @@ const roleLabels = {
 const logType = { INFO: 'info', WARNING: 'warning', ERROR: 'danger' }
 
 async function load() {
-  const data = await fetchAdminData()
-  users.value = data.users
+  const [userList, data] = await Promise.all([fetchUsers(), fetchAdminData()])
+  users.value = userList
   roles.value = data.roles
   metrics.value = data.metrics
   logs.value = data.logs
@@ -36,22 +51,56 @@ async function load() {
 }
 
 async function addUser() {
-  if (!userForm.username) {
-    ElMessage.warning('请填写用户名')
+  if (!userForm.username || !userForm.password) {
+    ElMessage.warning('请填写用户名和密码')
     return
   }
-  const created = await createUser({ ...userForm })
-  users.value.push(created)
-  userDialog.value = false
-  Object.assign(userForm, { username: '', role: 'procurement' })
-  ElMessage.success('用户已创建')
+  try {
+    const created = await createUser({ ...userForm })
+    users.value.push(created)
+    userDialog.value = false
+    Object.assign(userForm, { username: '', password: '', role: 'procurement' })
+    ElMessage.success('用户已创建')
+  } catch (error) {
+    ElMessage.error(error.response?.data?.detail ?? '创建失败')
+  }
 }
 
-function toggleUser(user) {
-  user.status = user.status === 'active' ? 'disabled' : 'active'
-  ElMessage.success(
-    user.status === 'active' ? `已启用 ${user.username}` : `已禁用 ${user.username}`,
-  )
+function openEdit(user) {
+  Object.assign(editForm, user)
+  editDialog.value = true
+}
+
+async function saveEdit() {
+  try {
+    const updated = await updateUser(editForm.user_id, {
+      role: editForm.role,
+      is_active: editForm.is_active,
+    })
+    const target = users.value.find((item) => item.user_id === updated.user_id)
+    Object.assign(target, updated)
+    editDialog.value = false
+    ElMessage.success('用户已更新')
+  } catch (error) {
+    ElMessage.error(error.response?.data?.detail ?? '更新失败')
+  }
+}
+
+async function removeUser(user) {
+  try {
+    await ElMessageBox.confirm(`确定删除账号 ${user.username}？`, '删除用户', {
+      type: 'warning',
+    })
+  } catch {
+    return
+  }
+  try {
+    await deleteUser(user.user_id)
+    users.value = users.value.filter((item) => item.user_id !== user.user_id)
+    ElMessage.success('用户已删除')
+  } catch (error) {
+    ElMessage.error(error.response?.data?.detail ?? '删除失败')
+  }
 }
 
 onMounted(load)
@@ -77,16 +126,29 @@ onMounted(load)
             <template #default="{ row }">
               <el-tag
                 size="small"
-                :type="row.status === 'active' ? 'success' : 'info'"
+                :type="row.is_active ? 'success' : 'info'"
               >
-                {{ row.status === 'active' ? '启用' : '禁用' }}
+                {{ row.is_active ? '启用' : '禁用' }}
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="100">
+          <el-table-column label="操作" width="140">
             <template #default="{ row }">
-              <el-button link type="primary" @click="toggleUser(row)">
-                {{ row.status === 'active' ? '禁用' : '启用' }}
+              <el-button
+                link
+                type="primary"
+                :disabled="isSelf(row)"
+                @click="openEdit(row)"
+              >
+                编辑
+              </el-button>
+              <el-button
+                link
+                type="danger"
+                :disabled="isSelf(row)"
+                @click="removeUser(row)"
+              >
+                删除
               </el-button>
             </template>
           </el-table-column>
@@ -164,6 +226,14 @@ onMounted(load)
       <el-form-item label="用户名">
         <el-input v-model="userForm.username" placeholder="登录账号" />
       </el-form-item>
+      <el-form-item label="密码">
+        <el-input
+          v-model="userForm.password"
+          type="password"
+          show-password
+          placeholder="至少 8 位"
+        />
+      </el-form-item>
       <el-form-item label="角色">
         <el-select v-model="userForm.role" style="width: 100%">
           <el-option
@@ -178,6 +248,35 @@ onMounted(load)
     <template #footer>
       <el-button @click="userDialog = false">取消</el-button>
       <el-button type="primary" @click="addUser">创建</el-button>
+    </template>
+  </el-dialog>
+
+  <el-dialog v-model="editDialog" title="编辑用户" width="420px">
+    <el-form label-width="80px">
+      <el-form-item label="用户名">
+        <el-input :model-value="editForm.username" disabled />
+      </el-form-item>
+      <el-form-item label="角色">
+        <el-select v-model="editForm.role" style="width: 100%">
+          <el-option
+            v-for="(label, value) in roleLabels"
+            :key="value"
+            :label="label"
+            :value="value"
+          />
+        </el-select>
+      </el-form-item>
+      <el-form-item label="状态">
+        <el-switch
+          v-model="editForm.is_active"
+          active-text="启用"
+          inactive-text="禁用"
+        />
+      </el-form-item>
+    </el-form>
+    <template #footer>
+      <el-button @click="editDialog = false">取消</el-button>
+      <el-button type="primary" @click="saveEdit">保存</el-button>
     </template>
   </el-dialog>
 </template>

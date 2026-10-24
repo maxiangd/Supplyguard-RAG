@@ -40,6 +40,10 @@ def get_current_user(
     user = db.get(User, payload.user_id)
     if user is None:
         raise _unauthorized("用户不存在")
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="账号已被禁用"
+        )
     return user
 
 

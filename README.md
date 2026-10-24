@@ -97,6 +97,13 @@ copy .env.example .env              # Windows
 uvicorn app.main:app --reload --port 8000
 ```
 
+需要文档摄取时，再启动 Redis 与 worker（两个终端）：
+
+```bash
+docker compose up -d redis          # 6380 端口，避开本机已有 Redis
+python -m app.workers.ingestion_worker
+```
+
 ### 验证
 
 ```bash
@@ -124,7 +131,7 @@ npm install
 npm run dev      # http://localhost:5173
 ```
 
-目前前端使用 `src/api/mock.js` 中的占位数据，可完整走通登录、看板、问答、图谱、复核、Benchmark、审计与管理页面；后端接口就绪后逐个替换为真实请求。
+目前登录页与管理页的账号管理已接真实后端，其余页面仍使用 `src/api/mock.js` 中的占位数据；后端接口就绪后逐个替换为真实请求。
 
 ## 项目结构
 
@@ -155,7 +162,7 @@ frontend/               Vue 3 前端（页面与交互完成，数据为 mock）
 | 阶段 | 内容 | 状态 |
 |---|---|---|
 | Phase 0 | 项目脚手架与依赖 | ✅ |
-| Phase 1 | 配置、日志、数据库、安全、应用初始化 | 🚧 |
+| Phase 1 | 配置、日志、数据库、安全、应用初始化 | ✅ |
 | 前端骨架 | Vue 3 页面与交互（mock 数据） | ✅ |
 | M1 | RBAC + SecureRAG + 固定工作流 + Review Node + 审计 + 基础前端 | ⬜ |
 | M2 | Neo4j 图谱构建 + GraphRAG 多跳影响分析 + 图谱界面 | ⬜ |

@@ -438,14 +438,6 @@ export async function fetchAuditLogs({
   }
 }
 
-const adminUsers = [
-  { user_id: 'u-1', username: 'catl_admin', role: 'admin', status: 'active' },
-  { user_id: 'u-2', username: 'catl_procurement', role: 'procurement', status: 'active' },
-  { user_id: 'u-3', username: 'catl_logistics', role: 'logistics', status: 'active' },
-  { user_id: 'u-4', username: 'catl_quality', role: 'quality', status: 'active' },
-  { user_id: 'u-5', username: 'catl_finance', role: 'finance', status: 'active' },
-]
-
 const adminRoles = [
   { role: 'admin', name: '管理员', scope: '管理用户、角色策略与审计', permissions: ['全部文档', '审批', '审计导出'] },
   { role: 'procurement', name: '采购', scope: '锂盐、正极、隔膜采购合同与供应商交付', permissions: ['采购文档', '发起问答', '提交复核'] },
@@ -472,19 +464,8 @@ const adminLogs = [
 export async function fetchAdminData() {
   await delay(150)
   return {
-    users: adminUsers.map((item) => ({ ...item })),
     roles: adminRoles.map((item) => ({ ...item })),
     metrics: { ...adminMetrics },
     logs: adminLogs.map((item) => ({ ...item })),
-  }
-}
-
-export async function createUser({ username, role }) {
-  await delay(200)
-  return {
-    user_id: `u-${Date.now()}`,
-    username,
-    role,
-    status: 'active',
   }
 }

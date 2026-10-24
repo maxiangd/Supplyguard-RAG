@@ -1,6 +1,11 @@
 """接口的请求与响应模型。"""
 
-from pydantic import BaseModel, Field
+from datetime import datetime
+from typing import Literal
+
+from pydantic import BaseModel, ConfigDict, Field
+
+RoleName = Literal["admin", "procurement", "logistics", "quality", "finance"]
 
 
 class UserResponse(BaseModel):
@@ -9,6 +14,7 @@ class UserResponse(BaseModel):
     user_id: str
     username: str = Field(min_length=1, max_length=128)
     role: str
+    is_active: bool
 
 
 class LoginRequest(BaseModel):
@@ -24,3 +30,36 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: UserResponse
+
+
+class CreateUserRequest(BaseModel):
+    """管理员创建账号。"""
+
+    username: str = Field(min_length=1, max_length=128)
+    password: str = Field(min_length=8, max_length=72)
+    role: RoleName
+
+
+class UpdateUserRequest(BaseModel):
+    """管理员修改账号角色或启用状态。"""
+
+    role: RoleName | None = None
+    is_active: bool | None = None
+
+
+class DocumentResponse(BaseModel):
+    """文档元信息与摄取状态。"""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    document_id: str
+    filename: str
+    content_type: str
+    size_bytes: int
+    allowed_roles: list[str]
+    uploaded_by: str
+    status: str
+    chunk_count: int
+    error_message: str | None
+    created_at: datetime
+    ingested_at: datetime | None

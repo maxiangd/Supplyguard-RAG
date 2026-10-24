@@ -24,6 +24,11 @@ def login(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="账号或密码错误",
         )
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="账号已被禁用",
+        )
 
     token = create_access_token(user.user_id, role=user.role)
     return TokenResponse(
@@ -32,6 +37,7 @@ def login(
             user_id=user.user_id,
             username=user.username,
             role=user.role,
+            is_active=user.is_active,
         ),
     )
 
@@ -45,4 +51,5 @@ def get_current_user_info(
         user_id=current_user.user_id,
         username=current_user.username,
         role=current_user.role,
+        is_active=current_user.is_active,
     )

@@ -20,6 +20,7 @@
   alembic==1.18.4
   psycopg[binary]==3.3.3
   redis==7.3.0
-  rq==2.7.0
+  # Windows 下 2.7.x 导入即失败（scheduler 硬编码 fork 上下文），固定 2.6.0
+  rq==2.6.0
   openai==2.26.0
   fastembed>=0.4.0

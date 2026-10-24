@@ -29,6 +29,13 @@ class Settings(BaseSettings):
         "postgresql+psycopg://supplyguard:123456@127.0.0.1:5432/supplyguard"
     )
 
+    # 队列
+    redis_url: str = "redis://localhost:6380/0"
+
+    # 上传
+    upload_directory: str = "data/uploads"
+    max_upload_size_mb: int = 20
+
     # 向量库
     qdrant_url: str = "http://localhost:6333"
     qdrant_collection: str = "supplyguard_chunks"
