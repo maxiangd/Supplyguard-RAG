@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import {
   Odometer,
   ChatDotRound,
+  FolderOpened,
   Share,
   Checked,
   DataAnalysis,
@@ -19,6 +20,7 @@ const auth = useAuthStore()
 const menus = [
   { path: '/dashboard', label: '风险看板', icon: Odometer },
   { path: '/chat', label: '风险问答', icon: ChatDotRound },
+  { path: '/documents', label: '文档库', icon: FolderOpened },
   { path: '/suppliers', label: '供应商图谱', icon: Share },
   { path: '/review', label: '复核台', icon: Checked },
   { path: '/benchmark', label: 'Benchmark', icon: DataAnalysis, roles: ['admin'] },

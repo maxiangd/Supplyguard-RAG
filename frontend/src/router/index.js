@@ -11,6 +11,7 @@ const routes = [
     children: [
       { path: 'dashboard', name: 'dashboard', component: () => import('../views/DashboardView.vue') },
       { path: 'chat', name: 'chat', component: () => import('../views/ChatView.vue') },
+      { path: 'documents', name: 'documents', component: () => import('../views/DocumentsView.vue') },
       { path: 'suppliers', name: 'suppliers', component: () => import('../views/SuppliersView.vue') },
       { path: 'review', name: 'review', component: () => import('../views/ReviewView.vue') },
       {
