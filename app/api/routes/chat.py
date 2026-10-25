@@ -1,6 +1,9 @@
 """问答路由：按角色检索并用指定模型生成回答。"""
 
+import json
+
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import StreamingResponse
 from openai import OpenAIError
 
 from app.api.dependencies import get_current_user
@@ -12,7 +15,12 @@ from app.models.api_models import (
     ChunkHit,
     ModelListResponse,
 )
-from app.services.chat import answer_question, available_models, default_model
+from app.services.chat import (
+    answer_question,
+    available_models,
+    default_model,
+    stream_answer,
+)
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
@@ -61,4 +69,44 @@ def answer(
         reasoning=result["reasoning"],
         model=result["model"],
         hits=[ChunkHit(**hit) for hit in result["hits"]],
+    )
+
+
+@router.post("/answer/stream")
+def answer_stream(
+    payload: AnswerRequest,
+    current_user: User = Depends(get_current_user),
+) -> StreamingResponse:
+    """用 SSE 返回检索证据、思考过程与逐字生成的回答。"""
+    models = available_models()
+    if not models:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="未配置可用的大模型密钥",
+        )
+
+    model = payload.model or default_model()
+    if model not in models:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="不支持的模型"
+        )
+
+    def generate():
+        try:
+            events = stream_answer(
+                payload.question,
+                current_user.role,
+                model,
+                payload.top_k or settings.top_k,
+            )
+            for event in events:
+                yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
+        except OpenAIError:
+            detail = {"type": "error", "detail": "模型服务不可用，请检查对应的 API Key"}
+            yield f"data: {json.dumps(detail, ensure_ascii=False)}\n\n"
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )

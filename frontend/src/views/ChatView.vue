@@ -1,8 +1,8 @@
 <script setup>
-import { nextTick, onMounted, ref } from 'vue'
+import { nextTick, onMounted, reactive, ref } from 'vue'
 import { CircleCheck, Clock, Loading } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import { askQuestion, fetchChatModels } from '../api/chat'
+import { fetchChatModels, streamAnswer } from '../api/chat'
 
 const question = ref('')
 const running = ref(false)
@@ -48,7 +48,7 @@ const stepDefs = [
 ]
 
 const examples = [
-  '赣锋锂业供应波动会影响 Q4 电芯交付吗？',
+  '碳酸锂价格回落后，Q4 采购策略要怎么调整？',
   '宜春枧下窝锂矿现在复产了吗？',
   '锂电池出口走哪个港口，海运有什么限制？',
   '2025 年营业收入和净利润是多少？',
@@ -82,7 +82,8 @@ async function ask() {
   if (!text || running.value) return
 
   messages.value.push({ role: 'user', content: text })
-  const reply = { role: 'assistant', content: '正在检索资料并生成回答…' }
+  // 必须是响应式对象，否则逐字追加不会触发视图更新
+  const reply = reactive({ role: 'assistant', content: '', reasoning: '' })
   messages.value.push(reply)
   question.value = ''
   citations.value = []
@@ -95,17 +96,39 @@ async function ask() {
 
   const model = selectedModel.value
   localStorage.setItem('chat_model', model)
+  let streamError = ''
 
   try {
-    const data = await askQuestion({ question: text, model })
-    setStep('retrieve', 'done', `命中 ${data.hits.length} 段`)
-    setStep('answer', 'done', model)
-    reply.content = data.answer
-    reply.reasoning = data.reasoning || ''
-    citations.value = data.hits
+    await streamAnswer({
+      question: text,
+      model,
+      onEvent: (event) => {
+        if (event.type === 'hits') {
+          citations.value = event.hits
+          setStep('retrieve', 'done', `命中 ${event.hits.length} 段`)
+          setStep('answer', 'active')
+        } else if (event.type === 'reasoning') {
+          reply.reasoning += event.text
+          // 思考过程一开始就展开，方便实时看到模型在推理
+          const index = messages.value.length - 1
+          if (!openReasoning.value.includes(index)) {
+            openReasoning.value = [...openReasoning.value, index]
+          }
+        } else if (event.type === 'delta') {
+          reply.content += event.text
+        } else if (event.type === 'done') {
+          citations.value = event.hits
+          setStep('answer', 'done', model)
+        } else if (event.type === 'error') {
+          streamError = event.detail
+        }
+        scrollToBottom()
+      },
+    })
+    if (streamError) throw new Error(streamError)
   } catch (error) {
-    const detail = error.response?.data?.detail ?? '回答失败，请稍后重试'
-    reply.content = detail
+    const detail = streamError || error.message || '回答失败，请稍后重试'
+    reply.content = reply.content || detail
     setStep('answer', 'error', '失败')
     ElMessage.error(detail)
   } finally {
@@ -165,8 +188,11 @@ onMounted(loadModels)
                   {{ message.reasoning }}
                 </div>
               </div>
-              <div v-if="message.content" class="bubble">
-                {{ message.content }}
+              <div
+                v-if="message.content || (message.role === 'assistant' && running)"
+                class="bubble"
+              >
+                {{ message.content || '正在检索资料…' }}
               </div>
             </div>
           </div>

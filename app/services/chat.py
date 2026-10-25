@@ -80,8 +80,8 @@ def answer_question(question: str, role: str, model: str, top_k: int) -> dict:
     answer = message.content or ""
     # 推理模型会额外返回思考过程，普通模型没有该字段
     reasoning = getattr(message, "reasoning_content", None)
-    # 模型判定资料不足且未引用任何证据时，不把无关片段当引用展示
-    if "暂无相关资料" in answer and "[" not in answer:
+    # 模型拒答时即使写了引用标记，引用的也是无关片段，一律不展示
+    if "知识库中暂无相关资料" in answer:
         return {
             "answer": answer,
             "reasoning": reasoning,
@@ -89,3 +89,37 @@ def answer_question(question: str, role: str, model: str, top_k: int) -> dict:
             "hits": [],
         }
     return {"answer": answer, "reasoning": reasoning, "model": model, "hits": hits}
+
+
+def stream_answer(question: str, role: str, model: str, top_k: int):
+    """边生成边产出事件：hits / reasoning / delta / done。"""
+    hits = search_chunks(question, role, top_k)
+    yield {"type": "hits", "hits": hits}
+
+    if not hits:
+        yield {"type": "delta", "text": "知识库中暂无相关资料，无法回答该问题。"}
+        yield {"type": "done", "hits": []}
+        return
+
+    parameters = {
+        "model": model,
+        "messages": build_messages(question, hits),
+        "stream": True,
+    }
+    if "reasoner" not in model:
+        parameters["temperature"] = 0.2
+
+    answer_parts = []
+    for chunk in get_chat_client(model).chat.completions.create(**parameters):
+        delta = chunk.choices[0].delta
+        reasoning = getattr(delta, "reasoning_content", None)
+        if reasoning:
+            yield {"type": "reasoning", "text": reasoning}
+        if delta.content:
+            answer_parts.append(delta.content)
+            yield {"type": "delta", "text": delta.content}
+
+    answer = "".join(answer_parts)
+    # 模型拒答时即使写了引用标记，引用的也是无关片段，一律不展示
+    final_hits = [] if "知识库中暂无相关资料" in answer else hits
+    yield {"type": "done", "hits": final_hits}
