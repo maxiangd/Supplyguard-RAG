@@ -284,7 +284,7 @@ docs: 更新 M1 进度与接口说明
 
 原则：
 
-- 默认测试不依赖 Ollama / Qdrant / Neo4j / Redis
+- 默认测试不依赖外部模型 API / Qdrant / Neo4j / Redis
 - 真实环境用 Docker Compose 做冒烟
 - 越权用例是必测项，不能省
 

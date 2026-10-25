@@ -51,7 +51,7 @@
 
 - **后端**：Python 3.11+ / FastAPI / LangGraph / SQLAlchemy 2.0
 - **数据**：PostgreSQL / Qdrant（文档向量）/ Neo4j（供应链图谱）/ Redis + RQ
-- **模型**：Ollama（默认）、OpenAI、Gemini；Embedding 支持 nomic-embed-text 等
+- **模型**：阿里百炼 Embedding（`text-embedding-v3`）+ DeepSeek LLM（`deepseek-chat`），均走 OpenAI 兼容接口，密钥放 `.env`
 - **前端**：Vue 3 + Vite + JavaScript + Element Plus（M1 起逐步）
 - **可观测**：JSON 日志、请求 ID、prometheus-client + Grafana
 - **部署**：Docker Compose
@@ -79,7 +79,7 @@ LangGraph 固定工作流
 ### 环境要求
 
 - Python 3.11 及以上（本机开发使用 3.13）
-- 可选：Ollama（问答与向量化）、Qdrant（文档检索）、Neo4j（图谱写分析）、Redis（异步任务与记忆）
+- 可选：Qdrant（文档检索）、Neo4j（图谱写分析）、Redis（异步任务与记忆）；Embedding 与 LLM 需要百炼 / DeepSeek 密钥
 
 ### 安装与启动
 

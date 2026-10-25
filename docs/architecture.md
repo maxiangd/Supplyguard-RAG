@@ -68,7 +68,7 @@ SupplyGuard 面向采购、物流、质量、财务等多角色，在 RBAC 权�
 │ /审计       │ │ +权限   │ │ 多跳关系        │ │             │
 └────────────┘ └─────────┘ └────────────────┘ └─────────────┘
 
-模型：Ollama / OpenAI / Gemini（LLM + Embedding）
+模型：阿里百炼 Embedding + DeepSeek LLM（OpenAI 兼容接口）
 可观测：JSON 日志 / request_id / Prometheus / Grafana
 ```
 
@@ -111,7 +111,7 @@ main.py
 │           ├── db/database.py     → db/tables.py（SQL）
 │           ├── services/retrieval.py   → Qdrant
 │           ├── services/graph.py       → Neo4j
-│           ├── services/llm.py         → Ollama / OpenAI / Gemini
+│           ├── services/llm.py         → DeepSeek / 百炼（OpenAI 兼容）
 │           ├── services/memory.py      → Redis / PostgreSQL
 │           ├── services/queue.py       → Redis / RQ
 │           └── services/audit.py       → db/audit_db.py
@@ -540,7 +540,7 @@ APP_BENCHMARK_REQUIRE_ZERO_LEAK=true
 | 五 Agent 自由协作 + Planning/Finance 协商循环 | 路径不可控、调试成本高；本项目采用规则路由的固定工作流 |
 | MCP 协议调用 | 增加传输层调试成本；MVP 用 service 直接调用，后续再抽协议 |
 | 实时网页搜索 | 外部依赖、成本与 SSRF 风险；先用手工/CSV 风险事件 |
-| Qwen 特定实现 | 保持 provider 无关，继续支持 Ollama / OpenAI / Gemini |
+| Qwen 特定实现 | 保持 provider 无关，当前接百炼与 DeepSeek，可换其他 OpenAI 兼容服务 |
 | 内存 checkpointer 作为唯一状态 | 审批、审计必须持久化到 PostgreSQL |
 
 ### 16.3 差异化定位

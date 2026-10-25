@@ -46,17 +46,16 @@ class Settings(BaseSettings):
     neo4j_password: str = "change-me"
     neo4j_database: str = "neo4j"
 
-    # Embedding
-    embedding_provider: str = "ollama"
-    embedding_model: str = "nomic-embed-text"
-    embedding_dimension: int = 768
+    # Embedding：阿里百炼（OpenAI 兼容模式）
+    embedding_api_key: str = ""
+    embedding_base_url: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    embedding_model: str = "text-embedding-v3"
+    embedding_dimension: int = 1024
 
-    # LLM
-    llm_provider: str = "ollama"
-    ollama_base_url: str = "http://localhost:11434"
-    ollama_model: str = "deepseek-r1:7b"
-    openai_api_key: str = ""
-    gemini_api_key: str = ""
+    # LLM：DeepSeek（OpenAI 兼容模式）
+    llm_api_key: str = ""
+    llm_base_url: str = "https://api.deepseek.com/v1"
+    llm_model: str = "deepseek-chat"
 
     # RAG
     chunk_size: int = 800

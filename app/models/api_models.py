@@ -63,3 +63,28 @@ class DocumentResponse(BaseModel):
     error_message: str | None
     created_at: datetime
     ingested_at: datetime | None
+
+
+class SearchRequest(BaseModel):
+    """检索请求。"""
+
+    query: str = Field(min_length=1, max_length=2000)
+    top_k: int | None = Field(default=None, ge=1, le=20)
+
+
+class ChunkHit(BaseModel):
+    """检索命中的文档块。"""
+
+    document_id: str
+    filename: str
+    chunk_index: int
+    text: str
+    allowed_roles: list[str]
+    score: float
+
+
+class SearchResponse(BaseModel):
+    """检索结果。"""
+
+    query: str
+    hits: list[ChunkHit]

@@ -1,8 +1,10 @@
-"""RQ worker：解析文档、切块并回写摄取状态。"""
+"""RQ worker：解析、切块、向量化并写入 Qdrant。"""
 
 from pathlib import Path
+from uuid import NAMESPACE_URL, uuid5
 
 from loguru import logger
+from qdrant_client.models import FieldCondition, Filter, MatchValue, PointStruct
 from redis import Redis
 from rq import Queue, SimpleWorker
 
@@ -17,11 +19,13 @@ from app.db.tables import (
     now_local,
 )
 from app.services.document_ingestion import extract_text, split_text
+from app.services.embeddings import embed_texts
 from app.services.ingestion_queue import INGESTION_QUEUE_NAME
+from app.services.retrieval import ensure_collection, get_qdrant_client
 
 
 def ingest_document(document_id: str) -> None:
-    """解析并切块，成功置 ready、失败置 failed。"""
+    """解析并向量化，成功置 ready、失败置 failed。"""
     with SessionLocal() as session:
         document = session.get(Document, document_id)
         if document is None:
@@ -37,6 +41,46 @@ def ingest_document(document_id: str) -> None:
             chunks = split_text(text, settings.chunk_size, settings.chunk_overlap)
             if not chunks:
                 raise ValueError("文档中没有可提取的文本")
+
+            ensure_collection()
+            vectors = embed_texts(chunks)
+
+            client = get_qdrant_client()
+            # 重新摄取时先删旧块，避免同一文档出现重复向量
+            client.delete(
+                collection_name=settings.qdrant_collection,
+                points_selector=Filter(
+                    must=[
+                        FieldCondition(
+                            key="document_id",
+                            match=MatchValue(value=document.document_id),
+                        )
+                    ]
+                ),
+                wait=True,
+            )
+            client.upsert(
+                collection_name=settings.qdrant_collection,
+                points=[
+                    PointStruct(
+                        id=str(
+                            uuid5(NAMESPACE_URL, f"{document.document_id}:{index}")
+                        ),
+                        vector=vector,
+                        payload={
+                            "document_id": document.document_id,
+                            "filename": document.filename,
+                            "chunk_index": index,
+                            "text": chunk,
+                            "allowed_roles": document.allowed_roles,
+                            "uploaded_by": document.uploaded_by,
+                        },
+                    )
+                    for index, (chunk, vector) in enumerate(zip(chunks, vectors))
+                ],
+                wait=True,
+            )
+
             document.chunk_count = len(chunks)
             document.status = DOCUMENT_STATUS_READY
             document.ingested_at = now_local()
