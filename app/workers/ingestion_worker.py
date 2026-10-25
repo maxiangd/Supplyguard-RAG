@@ -4,7 +4,7 @@ from pathlib import Path
 from uuid import NAMESPACE_URL, uuid5
 
 from loguru import logger
-from qdrant_client.models import FieldCondition, Filter, MatchValue, PointStruct
+from qdrant_client.models import PointStruct
 from redis import Redis
 from rq import Queue, SimpleWorker
 
@@ -21,7 +21,11 @@ from app.db.tables import (
 from app.services.document_ingestion import extract_text, split_text
 from app.services.embeddings import embed_texts
 from app.services.ingestion_queue import INGESTION_QUEUE_NAME
-from app.services.retrieval import ensure_collection, get_qdrant_client
+from app.services.retrieval import (
+    delete_document_points,
+    ensure_collection,
+    get_qdrant_client,
+)
 
 
 def ingest_document(document_id: str) -> None:
@@ -47,18 +51,7 @@ def ingest_document(document_id: str) -> None:
 
             client = get_qdrant_client()
             # 重新摄取时先删旧块，避免同一文档出现重复向量
-            client.delete(
-                collection_name=settings.qdrant_collection,
-                points_selector=Filter(
-                    must=[
-                        FieldCondition(
-                            key="document_id",
-                            match=MatchValue(value=document.document_id),
-                        )
-                    ]
-                ),
-                wait=True,
-            )
+            delete_document_points(document.document_id)
             client.upsert(
                 collection_name=settings.qdrant_collection,
                 points=[

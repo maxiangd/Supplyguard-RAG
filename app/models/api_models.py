@@ -65,6 +65,19 @@ class DocumentResponse(BaseModel):
     ingested_at: datetime | None
 
 
+class DocumentChunkResponse(BaseModel):
+    """文档切块内容。"""
+
+    chunk_index: int
+    text: str
+
+
+class UpdateDocumentRolesRequest(BaseModel):
+    """管理员调整文档的可访问角色。"""
+
+    allowed_roles: list[RoleName] = Field(min_length=1)
+
+
 class SearchRequest(BaseModel):
     """检索请求。"""
 

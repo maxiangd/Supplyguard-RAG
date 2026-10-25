@@ -14,3 +14,17 @@ export function uploadDocument({ file, allowedRoles }) {
 export function retryDocument(documentId) {
   return client.post(`/documents/${documentId}/retry`)
 }
+
+export function deleteDocument(documentId) {
+  return client.delete(`/documents/${documentId}`)
+}
+
+export function updateDocumentRoles(documentId, allowedRoles) {
+  return client.patch(`/documents/${documentId}/roles`, {
+    allowed_roles: allowedRoles,
+  })
+}
+
+export function fetchDocumentChunks(documentId) {
+  return client.get(`/documents/${documentId}/chunks`)
+}
