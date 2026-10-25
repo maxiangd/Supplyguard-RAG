@@ -101,3 +101,28 @@ class SearchResponse(BaseModel):
 
     query: str
     hits: list[ChunkHit]
+
+
+class AnswerRequest(BaseModel):
+    """问答请求。"""
+
+    question: str = Field(min_length=1, max_length=2000)
+    model: str | None = None
+    top_k: int | None = Field(default=None, ge=1, le=20)
+
+
+class AnswerResponse(BaseModel):
+    """问答结果，hits 为回答所依据的证据。"""
+
+    question: str
+    answer: str
+    reasoning: str | None = None
+    model: str
+    hits: list[ChunkHit]
+
+
+class ModelListResponse(BaseModel):
+    """可选模型列表。"""
+
+    models: list[str]
+    default: str

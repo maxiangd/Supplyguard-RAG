@@ -56,6 +56,10 @@ class Settings(BaseSettings):
     llm_api_key: str = ""
     llm_base_url: str = "https://api.deepseek.com/v1"
     llm_model: str = "deepseek-chat"
+    # 前端可选的模型；qwen-* 复用百炼的 key 与 base_url
+    llm_available_models: str = (
+        "deepseek-chat,deepseek-reasoner,qwen-plus,qwen-max"
+    )
 
     # RAG
     chunk_size: int = 800

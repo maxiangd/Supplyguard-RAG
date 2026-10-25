@@ -1,46 +1,61 @@
 <script setup>
-import { nextTick, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { nextTick, onMounted, ref } from 'vue'
 import { CircleCheck, Clock, Loading } from '@element-plus/icons-vue'
-import { runWorkflow } from '../api/mock'
-
-const router = useRouter()
+import { ElMessage } from 'element-plus'
+import { askQuestion, fetchChatModels } from '../api/chat'
 
 const question = ref('')
 const running = ref(false)
 const messages = ref([])
 const citations = ref([])
-const graphPaths = ref([])
-const approval = ref(null)
-const filteredCount = ref(0)
 const steps = ref([])
 const listRef = ref(null)
 
+const models = ref([])
+const selectedModel = ref('')
+const expandedCitations = ref([])
+const openReasoning = ref([])
+
+function toggleReasoning(index) {
+  openReasoning.value = openReasoning.value.includes(index)
+    ? openReasoning.value.filter((item) => item !== index)
+    : [...openReasoning.value, index]
+}
+
+function isReasoningOpen(index) {
+  return openReasoning.value.includes(index)
+}
+
+function citationKey(citation) {
+  return `${citation.document_id}-${citation.chunk_index}`
+}
+
+function isExpanded(citation) {
+  return expandedCitations.value.includes(citationKey(citation))
+}
+
+function toggleExpanded(citation) {
+  const key = citationKey(citation)
+  expandedCitations.value = isExpanded(citation)
+    ? expandedCitations.value.filter((item) => item !== key)
+    : [...expandedCitations.value, key]
+}
+
 const stepDefs = [
   { key: 'intake', label: '接收问题' },
-  { key: 'classify', label: '意图分类' },
   { key: 'retrieve', label: '权限内检索' },
-  { key: 'graph', label: '图谱影响分析' },
-  { key: 'review', label: '权限复核' },
-  { key: 'synthesize', label: '生成结论' },
+  { key: 'answer', label: '生成结论' },
 ]
 
 const examples = [
   '赣锋锂业供应波动会影响 Q4 电芯交付吗？',
-  '红海绕行应该启用中欧班列吗？',
-  '刚果（金）钴出口配额影响哪些基地？',
+  '宜春枧下窝锂矿现在复产了吗？',
+  '锂电池出口走哪个港口，海运有什么限制？',
+  '2025 年营业收入和净利润是多少？',
 ]
 
-function resetRun() {
-  steps.value = stepDefs.map((step) => ({
-    ...step,
-    status: 'pending',
-    detail: '',
-  }))
-  citations.value = []
-  graphPaths.value = []
-  approval.value = null
-  filteredCount.value = 0
+function resetSteps() {
+  steps.value = stepDefs.map((step) => ({ ...step, status: 'pending', detail: '' }))
 }
 
 function setStep(key, status, detail = '') {
@@ -50,47 +65,15 @@ function setStep(key, status, detail = '') {
   if (detail) step.detail = detail
 }
 
-function handleEvent(event) {
-  const current = messages.value[messages.value.length - 1]
-  switch (event.type) {
-    case 'run_started':
-      setStep('intake', 'done')
-      setStep('classify', 'active')
-      break
-    case 'classify_done':
-      setStep('classify', 'done', event.label)
-      setStep('retrieve', 'active')
-      break
-    case 'retrieve_done':
-      setStep(
-        'retrieve',
-        'done',
-        `命中 ${event.hits} 段，过滤 ${event.filtered} 段`,
-      )
-      setStep('graph', 'active')
-      break
-    case 'graph_done':
-      setStep('graph', 'done', `${event.paths} 条传导路径`)
-      setStep('review', 'active')
-      break
-    case 'review_done':
-      setStep('review', 'done', event.note)
-      setStep('synthesize', 'active')
-      break
-    case 'token':
-      current.content += event.text
-      scrollToBottom()
-      break
-    case 'done':
-      setStep('synthesize', 'done')
-      current.content = event.result.answer
-      citations.value = event.result.citations
-      graphPaths.value = event.result.graph_paths
-      approval.value = event.result.approval_required
-        ? event.result.approval_reason
-        : null
-      filteredCount.value = event.result.filtered_count
-      break
+async function loadModels() {
+  try {
+    const data = await fetchChatModels()
+    models.value = data.models
+    const saved = localStorage.getItem('chat_model')
+    selectedModel.value = models.value.includes(saved) ? saved : data.default
+  } catch {
+    models.value = ['deepseek-chat']
+    selectedModel.value = 'deepseek-chat'
   }
 }
 
@@ -99,16 +82,35 @@ async function ask() {
   if (!text || running.value) return
 
   messages.value.push({ role: 'user', content: text })
-  messages.value.push({ role: 'assistant', content: '' })
+  const reply = { role: 'assistant', content: '正在检索资料并生成回答…' }
+  messages.value.push(reply)
   question.value = ''
-  resetRun()
+  citations.value = []
+  expandedCitations.value = []
+  resetSteps()
   running.value = true
+  setStep('intake', 'done')
+  setStep('retrieve', 'active')
   scrollToBottom()
 
+  const model = selectedModel.value
+  localStorage.setItem('chat_model', model)
+
   try {
-    await runWorkflow({ question: text }, handleEvent)
+    const data = await askQuestion({ question: text, model })
+    setStep('retrieve', 'done', `命中 ${data.hits.length} 段`)
+    setStep('answer', 'done', model)
+    reply.content = data.answer
+    reply.reasoning = data.reasoning || ''
+    citations.value = data.hits
+  } catch (error) {
+    const detail = error.response?.data?.detail ?? '回答失败，请稍后重试'
+    reply.content = detail
+    setStep('answer', 'error', '失败')
+    ElMessage.error(detail)
   } finally {
     running.value = false
+    scrollToBottom()
   }
 }
 
@@ -122,6 +124,8 @@ async function scrollToBottom() {
   const el = listRef.value
   if (el) el.scrollTop = el.scrollHeight
 }
+
+onMounted(loadModels)
 </script>
 
 <template>
@@ -146,8 +150,24 @@ async function scrollToBottom() {
             :key="index"
             :class="['msg', message.role]"
           >
-            <div class="bubble">
-              {{ message.content || (message.role === 'assistant' && running ? '正在分析…' : '') }}
+            <div class="msg-body">
+              <div v-if="message.reasoning" class="reasoning">
+                <el-button
+                  link
+                  type="primary"
+                  size="small"
+                  class="reasoning-toggle"
+                  @click="toggleReasoning(index)"
+                >
+                  {{ isReasoningOpen(index) ? '收起思考过程' : '查看思考过程' }}
+                </el-button>
+                <div v-if="isReasoningOpen(index)" class="reasoning-text">
+                  {{ message.reasoning }}
+                </div>
+              </div>
+              <div v-if="message.content" class="bubble">
+                {{ message.content }}
+              </div>
             </div>
           </div>
         </div>
@@ -158,16 +178,29 @@ async function scrollToBottom() {
             type="textarea"
             :rows="3"
             resize="none"
-            placeholder="描述你的风险问题，例如：赣锋锂业供应波动会影响 Q4 电芯交付吗？"
+            placeholder="描述你的风险问题，例如：宜春枧下窝锂矿现在复产了吗？"
             @keydown.enter.exact.prevent="ask"
           />
           <div class="composer-actions">
-            <span class="hint">
-              Enter 发送，Shift+Enter 换行 · 当前为占位数据
-            </span>
-            <el-button type="primary" :loading="running" @click="ask">
-              提问
-            </el-button>
+            <span class="hint">Enter 发送，Shift+Enter 换行 · 回答仅基于当前角色可见资料</span>
+            <div class="composer-right">
+              <el-select
+                v-model="selectedModel"
+                size="default"
+                style="width: 190px"
+                placeholder="选择模型"
+              >
+                <el-option
+                  v-for="model in models"
+                  :key="model"
+                  :label="model"
+                  :value="model"
+                />
+              </el-select>
+              <el-button type="primary" :loading="running" @click="ask">
+                提问
+              </el-button>
+            </div>
           </div>
         </div>
       </el-card>
@@ -175,7 +208,7 @@ async function scrollToBottom() {
 
     <el-col :span="8">
       <el-card shadow="never" class="side">
-        <template #header>工作流进度</template>
+        <template #header>执行进度</template>
         <div v-for="step in steps" :key="step.key" class="step">
           <el-icon v-if="step.status === 'done'" color="#67c23a">
             <CircleCheck />
@@ -198,30 +231,38 @@ async function scrollToBottom() {
         />
       </el-card>
 
-      <el-alert
-        v-if="approval"
-        type="warning"
-        :closable="false"
-        class="approval"
-        show-icon
-      >
-        <template #title>该结论需人工复核</template>
-        <div class="approval-text">{{ approval }}</div>
-        <el-button type="warning" link @click="router.push('/review')">
-          去复核台处理 →
-        </el-button>
-      </el-alert>
-
       <el-card shadow="never" class="side">
         <template #header>
           引用与证据
-          <span v-if="filteredCount" class="filtered">
-            （另有 {{ filteredCount }} 条因权限被过滤）
+          <span v-if="citations.length" class="filtered">
+            （{{ citations.length }} 段）
           </span>
         </template>
-        <div v-for="citation in citations" :key="citation.id" class="citation">
-          <div class="citation-title">[{{ citation.id }}] {{ citation.title }}</div>
-          <div class="citation-snippet">{{ citation.snippet }}</div>
+        <div
+          v-for="(citation, index) in citations"
+          :key="citationKey(citation)"
+          class="citation"
+        >
+          <div class="citation-title">
+            [{{ index + 1 }}] {{ citation.filename }}
+            <span class="chunk">第 {{ citation.chunk_index + 1 }} 块</span>
+          </div>
+          <div
+            :class="['citation-snippet', { expanded: isExpanded(citation) }]"
+            @click="toggleExpanded(citation)"
+          >
+            {{ citation.text }}
+          </div>
+          <el-button
+            v-if="citation.text.length > 120"
+            link
+            size="small"
+            type="primary"
+            class="citation-toggle"
+            @click="toggleExpanded(citation)"
+          >
+            {{ isExpanded(citation) ? '收起' : '展开全文' }}
+          </el-button>
           <div class="citation-meta">
             <el-tag
               v-for="role in citation.allowed_roles"
@@ -231,29 +272,16 @@ async function scrollToBottom() {
             >
               {{ role }}
             </el-tag>
-            <span v-if="citation.score">相关度 {{ citation.score }}</span>
+            <span class="citation-score">
+              相关度 {{ citation.score.toFixed(3) }}
+            </span>
           </div>
         </div>
         <el-empty
           v-if="!citations.length"
           :image-size="50"
-          description="回答后显示可引用的证据"
+          description="回答后显示引用的资料"
         />
-      </el-card>
-
-      <el-card v-if="graphPaths.length" shadow="never" class="side">
-        <template #header>图谱路径</template>
-        <div v-for="path in graphPaths" :key="path.id" class="path">
-          <div class="path-nodes">{{ path.nodes.join(' → ') }}</div>
-          <div class="path-meta">
-            <el-tag
-              size="small"
-              :type="path.risk === 'high' ? 'danger' : 'warning'"
-            >
-              {{ path.relation }}
-            </el-tag>
-          </div>
-        </div>
       </el-card>
     </el-col>
   </el-row>
@@ -305,8 +333,20 @@ async function scrollToBottom() {
   justify-content: flex-end;
 }
 
-.bubble {
+.msg-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
   max-width: 82%;
+}
+
+.msg.user .msg-body {
+  align-items: flex-end;
+}
+
+.bubble {
+  max-width: 100%;
   padding: 10px 14px;
   border-radius: 8px;
   font-size: 14px;
@@ -324,6 +364,28 @@ async function scrollToBottom() {
   background: #f4f6f8;
 }
 
+.reasoning {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ebeef5;
+  border-radius: 6px;
+  background: #fafbfc;
+}
+
+.reasoning-toggle {
+  padding: 0;
+  height: auto;
+  font-size: 12px;
+}
+
+.reasoning-text {
+  margin-top: 6px;
+  color: #909399;
+  font-size: 12px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
 .composer {
   padding-top: 12px;
   border-top: 1px solid #f0f0f0;
@@ -334,6 +396,12 @@ async function scrollToBottom() {
   align-items: center;
   justify-content: space-between;
   margin-top: 8px;
+}
+
+.composer-right {
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
 
 .hint {
@@ -363,15 +431,6 @@ async function scrollToBottom() {
   font-size: 12px;
 }
 
-.approval {
-  margin-bottom: 16px;
-}
-
-.approval-text {
-  margin: 4px 0;
-  font-size: 13px;
-}
-
 .filtered {
   color: #909399;
   font-size: 12px;
@@ -392,27 +451,48 @@ async function scrollToBottom() {
   font-weight: 600;
 }
 
+.chunk {
+  color: #909399;
+  font-size: 12px;
+  font-weight: 400;
+}
+
 .citation-snippet {
+  display: -webkit-box;
+  overflow: hidden;
   margin: 4px 0;
   color: #606266;
   font-size: 12px;
   line-height: 1.6;
+  white-space: pre-wrap;
+  cursor: pointer;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+.citation-snippet.expanded {
+  display: block;
+  -webkit-line-clamp: unset;
+}
+
+.citation-toggle {
+  padding: 0;
+  height: auto;
+  font-size: 12px;
 }
 
 .citation-meta {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
   align-items: center;
+  margin-top: 6px;
   color: #909399;
   font-size: 12px;
 }
 
-.path-nodes {
-  font-size: 13px;
-  line-height: 1.6;
-}
-
-.path-meta {
-  margin-top: 4px;
+.citation-score {
+  margin-left: auto;
+  white-space: nowrap;
 }
 </style>
