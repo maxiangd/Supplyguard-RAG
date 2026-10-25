@@ -105,14 +105,14 @@
 
 ### E. GraphRAG
 
-- [ ] Neo4j 连接与约束
-- [ ] 节点/关系模型：Company、Supplier、Material、Factory、Warehouse、Port、Region、ShippingRoute、Shipment、DisruptionEvent
-- [ ] 导入脚本（种子数据幂等写入，参考 SentinelSCM 的 MERGE 方式）
-- [ ] 四类风险传导规则（DIRECT / REGION / PORT / ROUTE）用纯函数实现
-- [ ] 纯函数单测 + 与图谱查询结果对照
-- [ ] 多跳查询模板
-- [ ] 路径可信度与跳数限制
-- [ ] 图谱接口与前端可视化
+- [x] Neo4j 连接与约束
+- [x] 节点/关系模型：Entity 标签 + type 属性（supplier / factory / port / route / region / event）
+- [x] 导入脚本（种子数据幂等写入，MERGE 方式）
+- [x] 四类风险传导规则（DIRECT / REGION / PORT / ROUTE，标注在 AFFECTS 边上）
+- [ ] 纯函数单测 + 与图谱查询结果对照（M3 与 ground truth 一起补）
+- [x] 多跳查询模板（默认上限 3 跳）
+- [x] 路径可信度与跳数限制
+- [x] 图谱接口与前端可视化
 
 ### F. Memory
 
@@ -324,10 +324,10 @@ docs: 更新 M1 进度与接口说明
 | 文档与 SecureRAG | 🚧 | 文档表、上传、RQ 摄取（解析/分块）、按角色列表完成；Qdrant 权限检索待做 |
 | 固定工作流 | ⬜ | M1 |
 | 审批与审计 | ⬜ | M1 |
-| GraphRAG | ⬜ | M2 |
+| GraphRAG | 🚧 | 图谱、导入、多跳影响、图谱页、问答证据完成；路径命中率评测待 M3 |
 | Memory | ⬜ | M3 |
 | Benchmark | ⬜ | M3 |
-| 前端 | 🚧 | 8 个页面与交互完成，数据为 mock，待接后端 |
+| 前端 | 🚧 | 登录、文档库、风险问答、供应商图谱已接真实接口；看板、复核台、审计、Benchmark 仍为 mock |
 | 部署与交付 | ⬜ | M3 |
 
 ---
@@ -340,12 +340,12 @@ docs: 更新 M1 进度与接口说明
 4. ✅ `models/api_models.py` + `api/dependencies.py`：登录、当前用户、角色校验
 5. ✅ 用户管理接口
 6. ✅ 文档表、上传与摄取队列
-7. Qdrant 集合、payload、检索过滤
+7. ✅ Qdrant 集合、payload、检索过滤
 8. Review Node 与越权测试
-9. 四类风险传导规则（纯函数）+ 证据结构（source / fact / impact）
+9. 🚧 四类风险传导规则（图谱侧完成，纯函数对照待 M3）+ 证据结构（source / fact / impact）
 10. LangGraph 固定工作流 + `interrupt` 审批恢复
-11. Neo4j 图模型、导入脚本与多跳影响分析
+11. ✅ Neo4j 图模型、导入脚本与多跳影响分析
 12. 独立 ground truth、场景集与单 Agent 基线
-13. 审批、审计、SSE 与基础前端
+13. 🚧 审批、审计与基础前端（SSE 已完成）
 
 > 每完成一项，勾选第 4 节对应任务，并更新第 11 节状态。

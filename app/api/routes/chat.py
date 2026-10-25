@@ -69,6 +69,7 @@ def answer(
         reasoning=result["reasoning"],
         model=result["model"],
         hits=[ChunkHit(**hit) for hit in result["hits"]],
+        graph_paths=result["graph_paths"],
     )
 
 

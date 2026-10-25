@@ -103,6 +103,48 @@ class SearchResponse(BaseModel):
     hits: list[ChunkHit]
 
 
+class GraphNode(BaseModel):
+    """图谱节点。"""
+
+    id: str
+    name: str
+    type: str
+    risk_level: str | None = None
+    region: str | None = None
+    desc: str | None = None
+
+
+class GraphLink(BaseModel):
+    """图谱关系。"""
+
+    source: str
+    target: str
+    relation: str
+    detail: str = ""
+
+
+class GraphPathLink(BaseModel):
+    """影响路径中的一跳。"""
+
+    source: str
+    target: str
+    relation: str
+
+
+class GraphPath(BaseModel):
+    """一条影响传导路径。"""
+
+    rule: str
+    rule_label: str
+    severity: str
+    reason: str
+    hops: int
+    summary: str
+    nodes: list[GraphNode]
+    links: list[GraphPathLink]
+    affected: str
+
+
 class AnswerRequest(BaseModel):
     """问答请求。"""
 
@@ -112,13 +154,14 @@ class AnswerRequest(BaseModel):
 
 
 class AnswerResponse(BaseModel):
-    """问答结果，hits 为回答所依据的证据。"""
+    """问答结果，hits 与 graph_paths 为回答所依据的证据。"""
 
     question: str
     answer: str
     reasoning: str | None = None
     model: str
     hits: list[ChunkHit]
+    graph_paths: list[GraphPath] = Field(default_factory=list)
 
 
 class ModelListResponse(BaseModel):
@@ -126,3 +169,32 @@ class ModelListResponse(BaseModel):
 
     models: list[str]
     default: str
+
+
+class GraphOverviewResponse(BaseModel):
+    """当前角色可见的子图。"""
+
+    nodes: list[GraphNode]
+    links: list[GraphLink]
+
+
+class GraphImpactRequest(BaseModel):
+    """图谱影响分析请求：问题与实体 ID 二选一。"""
+
+    question: str | None = Field(default=None, max_length=2000)
+    entity_id: str | None = None
+    max_hops: int = Field(default=3, ge=1, le=4)
+
+
+class GraphImpactResponse(BaseModel):
+    """命中的实体与影响路径。"""
+
+    entities: list[GraphNode]
+    paths: list[GraphPath]
+
+
+class GraphSeedResponse(BaseModel):
+    """图谱导入结果。"""
+
+    nodes: int
+    relations: int

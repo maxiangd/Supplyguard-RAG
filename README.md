@@ -2,7 +2,7 @@
 
 供应链风险 AgentHarness 平台。在 RBAC 权限约束下，融合 SecureRAG、GraphRAG、Memory 与 LangGraph 固定工作流，为采购、物流、质量、财务等多角色提供**可引用、可审计、可 Benchmark** 的风险洞察与决策支持。
 
-> 当前状态：**开发中（Phase 1）**。登录与前端页面骨架已可运行，风险检索、图谱分析、审批等功能尚未实现。
+> 当前状态：**开发中（M2）**。登录、用户、文档库、SecureRAG 检索、SSE 风险问答与 GraphRAG 图谱分析已接通真实链路；固定工作流、复核台、审计与 Benchmark 待补。
 > 详细架构与数据模型见 [docs/architecture.md](docs/architecture.md)；执行计划、任务拆分与验收标准见 [PROJECT_PLAN.md](PROJECT_PLAN.md)；依赖函数速查见 [docs/library-cheatsheet.md](docs/library-cheatsheet.md)。
 
 ## 演示场景
@@ -39,11 +39,11 @@
 | 能力 | 说明 | 状态 |
 |---|---|---|
 | RBAC 多角色 | 采购 / 物流 / 质量 / 财务 / 管理员，权限贯穿检索与接口 | 🚧 |
-| SecureRAG | Qdrant payload 写入权限元数据，检索前过滤、Review Node 二次校验 | ⬜ |
-| GraphRAG | Neo4j 供应链图谱，风险事件多跳影响分析 | ⬜ |
+| SecureRAG | Qdrant payload 写入权限元数据，检索前过滤、Review Node 二次校验 | 🚧 |
+| GraphRAG | Neo4j 供应链图谱，四类传导规则的多跳影响分析 | ✅ |
 | 固定工作流 | LangGraph 多节点编排，规则路由替代自主规划 | ⬜ |
 | Memory | Redis 短期会话 + PostgreSQL 长期偏好与历史风险 | ⬜ |
-| 可引用结论 | 每条风险结论标注来源文档与图谱路径 | ⬜ |
+| 可引用结论 | 结论可引用文档证据 `[n]` 与图谱路径 `[G编号]` | 🚧 |
 | 审批与审计 | 高风险结论人工审批，全过程只追加审计 | 🚧 |
 | Benchmark | 场景集评测：Hit@K、越权拦截率、图谱路径命中率 | ⬜ |
 
@@ -97,11 +97,17 @@ copy .env.example .env              # Windows
 uvicorn app.main:app --reload --port 8000
 ```
 
-需要文档摄取时，再启动 Redis 与 worker（两个终端）：
+需要文档检索与图谱分析时，启动 Redis、Qdrant 与 Neo4j（摄取任务另开终端跑 worker）：
 
 ```bash
-docker compose up -d redis          # 6380 端口，避开本机已有 Redis
+docker compose up -d redis qdrant neo4j
 python -m app.workers.ingestion_worker
+```
+
+图谱首次使用先导入演示数据（幂等，可重复执行）：
+
+```bash
+python -m app.services.graph_seed
 ```
 
 ### 验证
@@ -165,7 +171,7 @@ frontend/               Vue 3 前端（页面与交互完成，数据为 mock）
 | Phase 1 | 配置、日志、数据库、安全、应用初始化 | ✅ |
 | 前端骨架 | Vue 3 页面与交互（mock 数据） | ✅ |
 | M1 | RBAC + SecureRAG + 固定工作流 + Review Node + 审计 + 基础前端 | ⬜ |
-| M2 | Neo4j 图谱构建 + GraphRAG 多跳影响分析 + 图谱界面 | ⬜ |
+| M2 | Neo4j 图谱构建 + GraphRAG 多跳影响分析 + 图谱界面 | 🚧 |
 | M3 | Memory + Benchmark + 指标 + Docker + 分层测试 | ⬜ |
 
 每个阶段的验收标准见 [docs/architecture.md](docs/architecture.md) 第 12 节。

@@ -8,6 +8,7 @@ const question = ref('')
 const running = ref(false)
 const messages = ref([])
 const citations = ref([])
+const graphPaths = ref([])
 const steps = ref([])
 const listRef = ref(null)
 
@@ -44,6 +45,7 @@ function toggleExpanded(citation) {
 const stepDefs = [
   { key: 'intake', label: '接收问题' },
   { key: 'retrieve', label: '权限内检索' },
+  { key: 'graph', label: '图谱传导' },
   { key: 'answer', label: '生成结论' },
 ]
 
@@ -53,6 +55,11 @@ const examples = [
   '锂电池出口走哪个港口，海运有什么限制？',
   '2025 年营业收入和净利润是多少？',
 ]
+
+function severityType(severity) {
+  if (severity === 'HIGH' || severity === 'CRITICAL') return 'danger'
+  return severity === 'MEDIUM' ? 'warning' : 'info'
+}
 
 function resetSteps() {
   steps.value = stepDefs.map((step) => ({ ...step, status: 'pending', detail: '' }))
@@ -87,6 +94,7 @@ async function ask() {
   messages.value.push(reply)
   question.value = ''
   citations.value = []
+  graphPaths.value = []
   expandedCitations.value = []
   resetSteps()
   running.value = true
@@ -106,6 +114,14 @@ async function ask() {
         if (event.type === 'hits') {
           citations.value = event.hits
           setStep('retrieve', 'done', `命中 ${event.hits.length} 段`)
+          setStep('graph', 'active')
+        } else if (event.type === 'graph') {
+          graphPaths.value = event.paths
+          setStep(
+            'graph',
+            'done',
+            event.paths.length ? `${event.paths.length} 条路径` : '无命中',
+          )
           setStep('answer', 'active')
         } else if (event.type === 'reasoning') {
           reply.reasoning += event.text
@@ -118,6 +134,7 @@ async function ask() {
           reply.content += event.text
         } else if (event.type === 'done') {
           citations.value = event.hits
+          graphPaths.value = event.graph_paths ?? []
           setStep('answer', 'done', model)
         } else if (event.type === 'error') {
           streamError = event.detail
@@ -307,6 +324,35 @@ onMounted(loadModels)
           v-if="!citations.length"
           :image-size="50"
           description="回答后显示引用的资料"
+        />
+      </el-card>
+
+      <el-card shadow="never" class="side">
+        <template #header>
+          图谱影响路径
+          <span v-if="graphPaths.length" class="filtered">
+            （{{ graphPaths.length }} 条）
+          </span>
+        </template>
+        <div v-for="(path, index) in graphPaths" :key="index" class="graph-path">
+          <div class="graph-path-summary">{{ path.summary }}</div>
+          <div class="citation-meta">
+            <el-tag size="small" effect="plain">{{ path.rule_label }}</el-tag>
+            <el-tag
+              size="small"
+              effect="plain"
+              :type="severityType(path.severity)"
+            >
+              {{ path.severity }}
+            </el-tag>
+            <span class="citation-score">{{ path.hops }} 跳</span>
+          </div>
+          <div class="graph-path-reason">{{ path.reason }}</div>
+        </div>
+        <el-empty
+          v-if="!graphPaths.length"
+          :image-size="50"
+          description="提问后显示图谱传导路径"
         />
       </el-card>
     </el-col>
@@ -520,5 +566,27 @@ onMounted(loadModels)
 .citation-score {
   margin-left: auto;
   white-space: nowrap;
+}
+
+.graph-path {
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.graph-path:last-child {
+  border-bottom: none;
+}
+
+.graph-path-summary {
+  color: #303133;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.graph-path-reason {
+  margin-top: 4px;
+  color: #909399;
+  font-size: 12px;
+  line-height: 1.6;
 }
 </style>

@@ -19,6 +19,24 @@ services:
       - qdrant-data:/data
     restart: unless-stopped
 
+  neo4j:
+    image: neo4j:5.26-community
+    container_name: supplyguard-neo4j
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    environment:
+      # 用户名固定 neo4j，密码取根目录 .env，未配置时用默认值
+      NEO4J_AUTH: neo4j/${APP_NEO4J_PASSWORD:-change-me}
+      # 演示规模很小，堆和页缓存按最小可用配置给
+      NEO4J_server_memory_heap_initial__size: 512m
+      NEO4J_server_memory_heap_max__size: 1g
+      NEO4J_server_memory_pagecache_size: 512m
+    volumes:
+      - neo4j-data:/data
+    restart: unless-stopped
+
 volumes:
   redis-data:
   qdrant-data:
+  neo4j-data:

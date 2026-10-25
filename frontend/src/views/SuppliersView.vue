@@ -1,11 +1,12 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import VChart from 'vue-echarts'
 import { use } from 'echarts/core'
 import { GraphChart } from 'echarts/charts'
 import { LegendComponent, TooltipComponent } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
-import { fetchSupplyGraph } from '../api/mock'
+import { ElMessage } from 'element-plus'
+import { analyzeImpact, fetchGraphOverview } from '../api/graph'
 
 use([CanvasRenderer, GraphChart, LegendComponent, TooltipComponent])
 
@@ -13,11 +14,14 @@ const loading = ref(true)
 const graph = ref({ nodes: [], links: [] })
 const selectedId = ref('')
 const highOnly = ref(false)
+const impactPaths = ref([])
+const impactLoading = ref(false)
 
 const typeLabels = {
   supplier: '供应商',
   factory: '工厂',
   port: '港口',
+  route: '航线',
   region: '地区',
   event: '风险事件',
 }
@@ -25,13 +29,19 @@ const typeColors = {
   supplier: '#1677ff',
   factory: '#67c23a',
   port: '#e6a23c',
+  route: '#9254de',
   region: '#909399',
   event: '#f56c6c',
 }
-const typeSize = { supplier: 46, factory: 38, port: 32, region: 36, event: 28 }
+const typeSize = { supplier: 46, factory: 38, port: 32, route: 30, region: 36, event: 28 }
 const levelText = { high: '高', medium: '中', low: '低' }
 const levelType = { high: 'danger', medium: 'warning', low: 'success' }
 const riskBorder = { high: '#f56c6c', medium: '#e6a23c', low: '#67c23a' }
+
+function severityType(severity) {
+  if (severity === 'HIGH' || severity === 'CRITICAL') return 'danger'
+  return severity === 'MEDIUM' ? 'warning' : 'info'
+}
 
 const nodeMap = computed(
   () => new Map(graph.value.nodes.map((node) => [node.id, node])),
@@ -71,7 +81,9 @@ const option = computed(() => {
             nodeMap.value.get(params.data.source)?.name ?? params.data.source
           const to =
             nodeMap.value.get(params.data.target)?.name ?? params.data.target
-          return `${from} → ${to}<br/>${params.data.relation}`
+          return `${from} → ${to}<br/>${params.data.relation}${
+            params.data.detail ? `<br/>${params.data.detail}` : ''
+          }`
         }
         return `${params.name}<br/>${typeLabels[params.data.type]}`
       },
@@ -116,6 +128,7 @@ const option = computed(() => {
             source: link.source,
             target: link.target,
             relation: link.relation,
+            detail: link.detail,
             lineStyle: {
               color: hasSelection && !related ? '#eeeeee' : '#c0c4cc',
               width: related ? 2.5 : 1.5,
@@ -147,6 +160,7 @@ const relatedLinks = computed(() => {
         otherName: other?.name ?? otherId,
         otherType: other?.type ?? '',
         relation: link.relation,
+        detail: link.detail,
         outgoing,
       }
     })
@@ -162,9 +176,28 @@ function onChartClick(params) {
   }
 }
 
+watch(selectedId, async (id) => {
+  impactPaths.value = []
+  if (!id) return
+  impactLoading.value = true
+  try {
+    const data = await analyzeImpact({ entityId: id, maxHops: 3 })
+    impactPaths.value = data.paths.slice(0, 8)
+  } catch (error) {
+    ElMessage.error(error.response?.data?.detail ?? '影响分析失败')
+  } finally {
+    impactLoading.value = false
+  }
+})
+
 onMounted(async () => {
-  graph.value = await fetchSupplyGraph()
-  loading.value = false
+  try {
+    graph.value = await fetchGraphOverview()
+  } catch (error) {
+    ElMessage.error(error.response?.data?.detail ?? '图谱加载失败')
+  } finally {
+    loading.value = false
+  }
 })
 </script>
 
@@ -223,7 +256,9 @@ onMounted(async () => {
             <span class="rel-other">
               {{ rel.outgoing ? '→' : '←' }} {{ rel.otherName }}
             </span>
-            <el-tag size="small" effect="plain">{{ rel.relation }}</el-tag>
+            <el-tag size="small" effect="plain" :title="rel.detail">
+              {{ rel.relation }}
+            </el-tag>
           </div>
 
           <div class="section-title">相关风险事件</div>
@@ -237,6 +272,29 @@ onMounted(async () => {
             />
           </div>
           <div v-else class="empty-text">暂无关联事件</div>
+
+          <div class="section-title">多跳影响路径</div>
+          <div v-loading="impactLoading" class="events">
+            <div v-for="path in impactPaths" :key="path.summary" class="path-row">
+              <div class="path-summary">{{ path.summary }}</div>
+              <div class="path-meta">
+                <el-tag size="small" effect="plain">{{ path.rule_label }}</el-tag>
+                <el-tag
+                  size="small"
+                  effect="plain"
+                  :type="severityType(path.severity)"
+                >
+                  {{ path.hops }} 跳
+                </el-tag>
+              </div>
+            </div>
+            <div
+              v-if="!impactLoading && !impactPaths.length"
+              class="empty-text"
+            >
+              暂无下游影响路径
+            </div>
+          </div>
         </template>
         <el-empty v-else description="点击图中节点查看详情" />
       </el-card>
@@ -306,6 +364,24 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.path-row {
+  padding: 8px 10px;
+  border: 1px solid #f0f0f0;
+  border-radius: 6px;
+}
+
+.path-summary {
+  color: #303133;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.path-meta {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
 }
 
 .empty-text {

@@ -262,76 +262,64 @@ must:     allowed_roles match any [当前用户角色]
 
 ### 6.1 图模型（Neo4j）
 
-节点命名与参考实现 SentinelSCM 对齐，便于对照和复用其传导规则：
+演示图谱基于 `docs/demo-data/` 的公开资料整理。所有节点统一使用 `Entity` 标签，用 `type` 属性区分角色（前端按 type 着色）；每个节点带 `allowed_roles`、`risk_level`、`region`、`desc` 与来源文档 `source`。
 
-| 节点 | 关键属性 |
-|---|---|
-| `Company` | company_id、name |
-| `Supplier` | supplier_id、name、country、tier、risk_score、is_available |
-| `Material` | material_id、name、sku、criticality、monthly_demand |
-| `Factory` | site_id、name、country |
-| `Warehouse` | site_id、name、country |
-| `Port` | port_id、name、country |
-| `Region` | region_id、name |
-| `ShippingRoute` | route_id、name、transit_days_normal/current、is_disrupted、disruption_type |
-| `Shipment` | shipment_id、status、eta、quantity |
-| `DisruptionEvent` | event_id、name、type、severity、start/end、is_active |
+| type | 含义 | 数量 | 可见角色 |
+|---|---|---|---|
+| `supplier` | 材料供应商（份额来自风险台账） | 12 | admin / procurement / finance / quality |
+| `factory` | 电芯、材料与海外基地 | 10 | 全部角色 |
+| `port` | 出海口 | 4 | admin / logistics |
+| `route` | 航线（连接两端港口） | 3 | admin / logistics |
+| `region` | 资源来源地与工厂所在地 | 11 | 全部角色 |
+| `event` | 风险事件（带传导规则） | 13 | 按事件内容分配 |
 
 关系：
 
-```
-(Company)-[:OPERATES]->(Factory | Warehouse)
-(Factory)-[:REQUIRES]->(Material)
-(Supplier)-[:SUPPLIES {share, is_primary}]->(Material)
-(Supplier)-[:LOCATED_IN]->(Region)
-(Supplier)-[:SHIPS_VIA]->(Port)
-(Port)-[:ROUTE_TO {route_id}]->(Port)
-(DisruptionEvent)-[:AFFECTS]->(Region | Port | ShippingRoute)
-(DisruptionEvent)-[:DIRECTLY_IMPACTS]->(Supplier)
-(Shipment)-[:FROM]->(Port)
-(Shipment)-[:TO]->(Port)
-(Shipment)-[:CARRIES]->(Material)
-```
+| 关系 | 方向 | 含义 |
+|---|---|---|
+| `SUPPLIES {material, share}` | Supplier → Factory | 供货关系与份额 |
+| `SOURCED_FROM {material}` | Supplier → Region | 原料来源地 |
+| `LOCATED_IN` | Factory → Region | 基地所在地 |
+| `FEEDS {material}` | Factory → Factory | 内部材料流（宜春冶炼 → 电芯基地） |
+| `SHIPS_VIA` | Factory → Port | 出海口 |
+| `CONNECTS` | Route → Port | 航线两端港口 |
+| `AFFECTS {rule, severity, reason}` | Event → Supplier / Factory / Region / Port / Route | 影响对象与传导方式 |
+
+`AFFECTS.rule` 取 DIRECT / REGION / PORT / ROUTE，决定从事件往下游怎么展开（见 6.2）。
+
+导入：`python -m app.services.graph_seed`（全量 `MERGE`，可重复执行），或管理员调用 `POST /api/graph/seed`。当前演示图谱共 53 个节点、87 条关系。
 
 ### 6.2 风险传导规则
 
-参考 SentinelSCM 的做法，四类路径用**纯函数**实现，不依赖 Neo4j 或 LLM，便于单测和独立 ground truth：
+规则标注在事件与目标的 `AFFECTS` 边上，由 `services/graph.py` 按目标类型做下游展开。每个角色只看到自己可见的节点，路径中任一节点不可见就整条不返回：
 
-| 路径 | 条件 | 结果 |
-|---|---|---|
-| DIRECT | 事件 `DIRECTLY_IMPACTS` 供应商 | 供应商不可用，CRITICAL |
-| REGION | 供应商 `LOCATED_IN` 受影响的区域 | 按事件严重度评级 |
-| PORT | 供应商 `SHIPS_VIA` 受影响的港口 | 按港口或事件严重度评级 |
-| ROUTE | 供应商航线被 `AFFECTS` | BLOCKED → 无限期延误；REROUTED → 额外天数 = 当前 - 正常 |
+| 规则 | 起点 | 展开 | 跳数 |
+|---|---|---|---|
+| DIRECT | 事件直接影响的供应商 / 工厂 | 供应商 → 工厂 → 港口 | 1–3 |
+| REGION | 事件影响的地区 | 地区 → 供应商 / 工厂 → 工厂 → 港口 | 2–4（默认上限 3） |
+| PORT | 事件影响的港口 | 港口 → 经此出货的工厂 | 2 |
+| ROUTE | 事件影响的航线 | 航线 → 两端港口 → 工厂 | 2–3 |
 
-最终风险等级 = 所有命中路径中的最高严重度；延误天数取最大值。
+路径按跳数升序、严重度降序返回，默认最多 3 跳、40 条；每条路径带 `hops`、`rule_label`、`severity`、`reason`，供前端展示与后续 Benchmark 使用。
 
-### 6.3 多跳查询示例
+问题命中供应商、工厂、港口、地区、航线时，会把「影响该实体的风险事件」作为路径起点（如 `极星 4 召回 → 宁德漳湾基地 → 三都澳`），避免回答缺少风险来源；该角色看不到的事件不会出现。
 
-风险问题：「越南工厂停工，影响哪些采购订单？」
+### 6.3 API 与问答融合
 
-```
-DisruptionEvent -[:AFFECTS]-> Region/Port
-  ←[:LOCATED_IN | :SHIPS_VIA]- Supplier
-    -[:SUPPLIES]-> Material
-      ←[:REQUIRES]- Factory
-Shipment -[:FROM/TO]-> Port
-Shipment -[:CARRIES]-> Material
-```
+| 接口 | 说明 |
+|---|---|
+| `GET /api/graph/overview` | 当前角色可见的节点，以及两端都可见的关系 |
+| `POST /api/graph/impact` | 按 `question` 或 `entity_id` 做多跳影响分析，`max_hops` 取 1–4 |
+| `POST /api/graph/seed` | 管理员幂等导入演示图谱 |
 
-返回：
-
-- 受影响物料与关键性
-- 受影响供应商、占比与不可用状态
-- 在途/待发运订单
-- 每一跳的关系类型与依据
+问答链路（`services/chat.py`）在文档检索之后按问题识别实体（节点名 / 别名规则匹配，不调用 LLM），取前 6 条路径以 `[G编号]` 注入提示词；回答可同时引用文档 `[n]` 与图谱 `[G编号]`，流式接口额外推送 `graph` 事件。模型以「知识库中暂无相关资料」开头作答时视为拒答，文档与图谱证据一起清空；只能部分回答时保留证据。Neo4j 不可用时图谱证据降级为空，文档问答继续可用。
 
 ### 6.4 路径可信度
 
-- 只返回有边权重的路径；
-- 记录跳数与关系类型；
-- 低置信度路径标注“需人工确认”；
-- Benchmark 用路径命中率（与独立 ground truth 对比）。
+- 图谱证据只来自结构化关系，不经过 LLM 生成；
+- 每条路径保留跳数、规则类型与事件严重度；
+- 文档与图谱证据都为空时才拒答；
+- M3 再补独立 ground truth 与路径命中率评测。
 
 ## 7. Memory：短期与长期记忆
 
@@ -456,12 +444,12 @@ SSE 事件：`run_started`、`classify_done`、`retrieve_done`、`graph_done`、
 **验收**：角色 A 无法召回角色 B 的文档；越权用例拦截率 100%；答案带可点击引用。
 
 ### M2 GraphRAG
-- Neo4j 图模型与导入脚本
-- 多跳影响查询
-- 图谱界面与路径高亮
-- 与 SecureRAG 结果合并
+- Neo4j 图模型与导入脚本（已完成）
+- 多跳影响查询（已完成，DIRECT / REGION / PORT / ROUTE 四类规则）
+- 图谱界面与路径高亮（已完成）
+- 与 SecureRAG 结果合并（已完成，图谱路径以 `[G编号]` 进入提示词）
 
-**验收**：给定风险事件，返回受影响物料、供应商、订单路径；Benchmark 路径命中率达到约定阈值。
+**验收**：给定风险事件，返回受影响工厂与出海口路径；图谱证据随回答展示。Benchmark 路径命中率留到 M3。
 
 ### M3 Memory + Benchmark + 交付
 - Redis 短期记忆、PostgreSQL 长期记忆
@@ -475,8 +463,10 @@ SSE 事件：`run_started`、`classify_done`、`retrieve_done`、`graph_done`、
 
 ```
 Phase 0  ✅
-Phase 1  🚧  配置/日志/会话层完成，3 张基础表完成
-M1–M3    ⬜
+Phase 1  ✅  配置 / 日志 / 数据库 / 安全 / 应用初始化
+M1       🚧  登录、用户、文档摄取、SecureRAG 检索、风险问答（含 SSE）已完成；固定工作流、复核台、审计待补
+M2       🚧  图模型、幂等导入、多跳影响分析、图谱页面、问答图谱证据已完成；路径命中率评测待 M3
+M3       ⬜
 ```
 
 ## 14. 主要风险与对策
