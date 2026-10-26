@@ -2,7 +2,6 @@
 import { onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { createUser, deleteUser, fetchUsers, updateUser } from '../api/users'
-import { fetchAdminData } from '../api/mock'
 import { useAuthStore } from '../stores/auth'
 
 const auth = useAuthStore()
@@ -12,8 +11,6 @@ const activeTab = ref('users')
 
 const users = ref([])
 const roles = ref([])
-const metrics = ref({})
-const logs = ref([])
 
 const userDialog = ref(false)
 const userForm = reactive({
@@ -39,15 +36,42 @@ const roleLabels = {
   quality: '质量',
   finance: '财务',
 }
-const logType = { INFO: 'info', WARNING: 'warning', ERROR: 'danger' }
+
+// ── 5 角色的真实权限说明（与后端 RBAC 一致，不需要 API）──
+const ROLE_POLICIES = [
+  {
+    name: '管理员 (admin)',
+    scope: '全局可见，可管理用户账号、文档权限、审批高风险结论、查看审计日志',
+    permissions: ['查看全部文档', '查看全部图谱节点', '管理用户', '审批高风险结论', '查看审计日志', '配置文档可见角色'],
+  },
+  {
+    name: '采购 (procurement)',
+    scope: '供应链上游——供应商关系、原料采购、成本与价格风险',
+    permissions: ['查看供应商/原料文档', '查看采购相关图谱节点', '提交风险问答', '查看成本分析', '不可见质量召回事件'],
+  },
+  {
+    name: '物流 (logistics)',
+    scope: '运输与交付——港口、航线、出口合规与舱位管理',
+    permissions: ['查看物流/出口文档', '查看港口/航线图谱节点', '查看替代路径', '不可见供应商详情'],
+  },
+  {
+    name: '质量 (quality)',
+    scope: '产品与合规——召回事件、质量追溯、电池法规合规要求',
+    permissions: ['查看质量/召回文档', '查看质量事件图谱', '追溯供应商批次', '查看欧盟合规要求'],
+  },
+  {
+    name: '财务 (finance)',
+    scope: '成本与结算——采购成本、库存减值、合同条款',
+    permissions: ['查看采购/成本文档', '查看价格相关事件', '监控库存减值风险', '不可见港口/航线详情'],
+  },
+]
 
 async function load() {
-  const [userList, data] = await Promise.all([fetchUsers(), fetchAdminData()])
+  const userList = await fetchUsers()
   users.value = userList
-  roles.value = data.roles
-  metrics.value = data.metrics
-  logs.value = data.logs
+  roles.value = ROLE_POLICIES
   loading.value = false
+}
 }
 
 async function addUser() {
@@ -174,48 +198,6 @@ onMounted(load)
               </el-tag>
             </template>
           </el-table-column>
-        </el-table>
-      </el-tab-pane>
-
-      <el-tab-pane label="监控" name="monitor">
-        <el-row :gutter="16">
-          <el-col :span="6">
-            <el-card shadow="never">
-              <div class="stat-label">今日请求</div>
-              <div class="stat-value">{{ metrics.requests_today }}</div>
-            </el-card>
-          </el-col>
-          <el-col :span="6">
-            <el-card shadow="never">
-              <div class="stat-label">LLM 调用</div>
-              <div class="stat-value">{{ metrics.llm_calls }}</div>
-            </el-card>
-          </el-col>
-          <el-col :span="6">
-            <el-card shadow="never">
-              <div class="stat-label">越权拦截</div>
-              <div class="stat-value">{{ metrics.blocked }}</div>
-            </el-card>
-          </el-col>
-          <el-col :span="6">
-            <el-card shadow="never">
-              <div class="stat-label">审批积压</div>
-              <div class="stat-value">{{ metrics.approval_backlog }}</div>
-            </el-card>
-          </el-col>
-        </el-row>
-
-        <el-table :data="logs" size="small" class="logs">
-          <el-table-column prop="time" label="时间" width="100" />
-          <el-table-column label="级别" width="100">
-            <template #default="{ row }">
-              <el-tag size="small" :type="logType[row.level]">
-                {{ row.level }}
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column prop="message" label="日志" min-width="300" />
-          <el-table-column prop="request_id" label="request_id" width="140" />
         </el-table>
       </el-tab-pane>
     </el-tabs>
