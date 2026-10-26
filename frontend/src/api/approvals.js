@@ -14,3 +14,7 @@ export function decideApproval(approvalId, action, comment) {
     comment,
   })
 }
+
+export function deleteApproval(approvalId) {
+  return client.delete(`/approvals/${approvalId}`)
+}

@@ -19,6 +19,7 @@ from app.models.api_models import (
 from app.services.approval import (
     STATUS_PENDING,
     decide_approval,
+    delete_approval,
     get_approval,
     list_approvals,
 )
@@ -95,3 +96,20 @@ def decide(
     db.commit()
     submit_decision(approval_id, payload.action, payload.comment)
     return approval_detail(approval_id, db)
+
+
+@router.delete("/{approval_id}")
+def delete(
+    approval_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_database_session),
+) -> dict:
+    """删除已处理的审批单（pending 状态的不能删）。"""
+    ok = delete_approval(db, approval_id, current_user)
+    if not ok:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="审批单不存在、尚未处理、或无权删除",
+        )
+    db.commit()
+    return {"status": "ok"}

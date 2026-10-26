@@ -72,7 +72,6 @@ async function load() {
   roles.value = ROLE_POLICIES
   loading.value = false
 }
-}
 
 async function addUser() {
   if (!userForm.username || !userForm.password) {

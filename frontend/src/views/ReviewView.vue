@@ -1,8 +1,8 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { useAuthStore } from '../stores/auth'
-import { decideApproval, fetchApproval, fetchApprovals } from '../api/approvals'
+import { decideApproval, deleteApproval, fetchApproval, fetchApprovals } from '../api/approvals'
 
 const auth = useAuthStore()
 
@@ -92,6 +92,25 @@ async function load() {
   }
 }
 
+async function remove(row) {
+  try {
+    await ElMessageBox.confirm(
+      `确定要删除这条审批记录吗？问题：「${row.question.slice(0, 50)}」`,
+      '确认删除',
+      { confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning' },
+    )
+  } catch {
+    return
+  }
+  try {
+    await deleteApproval(row.approval_id)
+    ElMessage.success('已删除')
+    await load()
+  } catch (error) {
+    ElMessage.error(error.response?.data?.detail ?? '删除失败')
+  }
+}
+
 onMounted(load)
 </script>
 
@@ -126,10 +145,18 @@ onMounted(load)
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="90">
+      <el-table-column label="操作" width="130">
         <template #default="{ row }">
           <el-button link type="primary" @click="open(row)">
             {{ canDecide(row) ? '处理' : '查看' }}
+          </el-button>
+          <el-button
+            v-if="row.status !== 'pending'"
+            link
+            type="danger"
+            @click="remove(row)"
+          >
+            删除
           </el-button>
         </template>
       </el-table-column>

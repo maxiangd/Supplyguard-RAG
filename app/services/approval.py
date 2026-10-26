@@ -102,3 +102,34 @@ def decide_approval(
         detail={"comment": comment or ""},
     )
     return approval
+
+
+def delete_approval(
+    db: Session,
+    approval_id: str,
+    user: User,
+) -> bool:
+    """删除审批单。已处理的（approved/rejected）才能删，未处理的不能删。
+    管理员可删全部已处理单，其他角色只能删自己提交的已处理单。"""
+    approval = db.get(Approval, approval_id)
+    if approval is None:
+        return False
+    # 未处理的不能删
+    if approval.status == STATUS_PENDING:
+        return False
+    # 只有 admin 或提交人自己能删
+    if user.role != "admin" and approval.submitted_by != user.username:
+        return False
+
+    record_audit(
+        db,
+        actor=user.username,
+        actor_role=user.role,
+        action="approval.deleted",
+        target_type="approval",
+        target_id=approval_id,
+        detail={"status": approval.status},
+    )
+    db.delete(approval)
+    db.flush()
+    return True
