@@ -52,6 +52,12 @@ class SupplyGuardState(TypedDict, total=False):
     top_k: int
     username: str
 
+    # ---- 会话记忆（从 Redis 加载，注入到 build_context_node）----
+    session_history: list[dict]
+    """最近 N 轮对话的 {question, answer, role, timestamp} 列表"""
+    memory_context: str
+    """格式化后的对话历史文本，直接注入到提示词"""
+
     # ---- 检索结果 ----
     hits: list[dict]
     """Qdrant 检索到的文档块（已做角色过滤）"""
@@ -282,19 +288,23 @@ def _build_graph_context(paths: list[dict]) -> str:
 
 
 def build_context_node(state: SupplyGuardState) -> dict:
-    """把复核后的文档证据与图谱路径拼成 LLM 提示词。
+    """把复核后的文档证据、图谱路径与会话历史拼成 LLM 提示词。
 
     这是「证据 → 提示词」的唯一组装点，后续节点和路由处理器
     都从这里取 messages。
     """
     hits = state.get("review_passed_hits", state.get("hits", []))
     paths = state.get("review_passed_paths", state.get("graph_paths", []))
+    memory_context = state.get("memory_context", "")
 
     context = "\n\n".join(
         f"[{index}] 文件：{hit['filename']}（第 {hit['chunk_index'] + 1} 块）\n{hit['text']}"
         for index, hit in enumerate(hits, start=1)
     )
     sections = []
+    # 会话历史放在最前面，帮助模型理解追问上下文
+    if memory_context:
+        sections.append(memory_context)
     if context:
         sections.append(f"资料：\n{context}")
     if paths:

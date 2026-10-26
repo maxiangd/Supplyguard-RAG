@@ -15,6 +15,7 @@ from langgraph.types import Command
 from app.core.configuration import settings
 from app.db.tables import User
 from app.services.approval import create_approval
+from app.services.memory import add_turn, build_memory_context, get_session_history
 from app.services.workflow import (
     SupplyGuardState,
     await_decision,
@@ -201,12 +202,19 @@ def answer_question(
 ) -> dict:
     """检索→图谱→复核→生成→评估→审批，全流程同步执行。"""
     graph = _get_graph()
+
+    # 加载会话历史
+    history = get_session_history(user.username)
+    memory_context = build_memory_context(history)
+
     initial: SupplyGuardState = {
         "question": question,
         "role": role,
         "model": model,
         "top_k": top_k,
         "username": user.username,
+        "session_history": history,
+        "memory_context": memory_context,
     }
     config = {"configurable": {"thread_id": f"sync_{user.username}_{id(initial)}"}}
 
@@ -217,8 +225,10 @@ def answer_question(
     hits = state.get("review_passed_hits", state.get("hits", []))
     paths = state.get("review_passed_paths", state.get("graph_paths", []))
     if not hits and not paths:
+        refusal = "知识库中暂无相关资料，无法回答该问题。"
+        add_turn(user.username, role, question, refusal)
         return {
-            "answer": "知识库中暂无相关资料，无法回答该问题。",
+            "answer": refusal,
             "reasoning": None,
             "model": model,
             "hits": [],
@@ -237,6 +247,7 @@ def answer_question(
     reasoning = getattr(message, "reasoning_content", None)
 
     if _is_refusal(answer):
+        add_turn(user.username, role, question, answer)
         return {
             "answer": answer,
             "reasoning": reasoning,
@@ -275,6 +286,9 @@ def answer_question(
             "reason": risk_reason,
         }
 
+    # 保存本轮对话到 Redis
+    add_turn(user.username, role, question, answer)
+
     return result
 
 
@@ -283,19 +297,28 @@ def answer_question(
 # ---------------------------------------------------------------------------
 
 
-def run_workflow_phase1(question: str, role: str, model: str, top_k: int, username: str):
+def run_workflow_phase1(
+    question: str, role: str, model: str, top_k: int, username: str,
+    session_history: list[dict] | None = None,
+):
     """运行工作流第一阶段：检索 → 图谱 → 复核 → 拼提示词。
 
-    在 assess_risk 节点前中断，返回 (thread_id, state)。
+    在 assess_risk 节点前中断，返回 (thread_id, state, config)。
     路由处理器在此基础上做流式 LLM 生成。
+
+    session_history 从 Redis 加载，注入到提示词中实现多轮对话。
     """
     graph = _get_graph()
+    history = session_history or []
+    memory_context = build_memory_context(history)
     initial: SupplyGuardState = {
         "question": question,
         "role": role,
         "model": model,
         "top_k": top_k,
         "username": username,
+        "session_history": history,
+        "memory_context": memory_context,
     }
     thread_id = f"stream_{username}_{id(initial)}"
     config = {"configurable": {"thread_id": thread_id}}
@@ -353,14 +376,20 @@ def stream_answer(
     """边生成边产出 SSE 事件。
 
     流程：
+    0. 从 Redis 加载会话历史
     1. 运行 Phase 1（检索→图谱→复核→拼提示词）→ yield hits, graph
     2. LLM 流式生成 → yield reasoning, delta
     3. 运行 Phase 2（评估风险→条件路由）→ yield risk, approval（如 HIGH）
-    4. 如果是 HIGH，阻塞等待审批决定 → yield done
+    4. 如果是 HIGH，阻塞等待审批决定
+    5. 保存本轮对话到 Redis → yield done
     """
     username = user.username
+
+    # 加载会话历史，注入到 Workflow 提示词
+    history = get_session_history(username)
+
     thread_id, state, config = run_workflow_phase1(
-        question, role, model, top_k, username
+        question, role, model, top_k, username, session_history=history
     )
 
     # 第一阶段结果
@@ -373,7 +402,9 @@ def stream_answer(
 
     # 无证据直接拒答
     if not hits and not paths:
-        yield {"type": "delta", "text": "知识库中暂无相关资料，无法回答该问题。"}
+        refusal_text = "知识库中暂无相关资料，无法回答该问题。"
+        yield {"type": "delta", "text": refusal_text}
+        add_turn(username, role, question, refusal_text)
         yield {"type": "done", "hits": [], "graph_paths": []}
         return
 
@@ -400,6 +431,7 @@ def stream_answer(
     refused = _is_refusal(answer)
 
     if refused:
+        add_turn(username, role, question, answer)
         yield {
             "type": "done",
             "hits": [],
@@ -408,7 +440,7 @@ def stream_answer(
         return
 
     # ---- Phase 2：风险评估 + 审批门 ----
-    reasoning_value = None  # 流式场景不单独记录 reasoning
+    reasoning_value = None
     final_state = run_workflow_phase2(thread_id, config, answer, reasoning_value)
 
     risk_level = final_state.get("risk_level", "LOW")
@@ -417,7 +449,6 @@ def stream_answer(
 
     approval_id = None
     if risk_level == "HIGH":
-        # 创建审批单
         approval_id = create_approval_from_state(
             db,
             {
@@ -441,6 +472,9 @@ def stream_answer(
         decision = await_decision(approval_id)
         if decision:
             run_workflow_resume(config)
+
+    # 保存本轮对话到 Redis（无论风险等级）
+    add_turn(username, role, question, answer)
 
     yield {
         "type": "done",

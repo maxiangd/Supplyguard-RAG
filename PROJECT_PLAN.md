@@ -116,8 +116,10 @@
 
 ### F. Memory
 
-- [ ] Redis 会话读写（TTL、轮次上限）
-- [ ] PostgreSQL 长期记忆表与 CRUD
+- [x] Redis 会话读写（TTL、轮次上限，由 settings 控制）
+- [x] PostgreSQL 长期记忆表与 CRUD（`long_term_memories` 表）
+- [x] 记忆注入：`build_context_node` 读取 `session_history`，拼入提示词
+- [x] 长期记忆接口：创建/列表/查看/更新/删除，admin 全见 + 角色隔离
 - [ ] 记忆摘要生成与敏感检查
 - [ ] 多轮追问场景测试
 
@@ -326,7 +328,7 @@ docs: 更新 M1 进度与接口说明
 | 固定工作流 | 🚧 | LangGraph 状态机已完成，Review Node 已完成，待越权测试与单测 | M1 |
 | 审批与审计 | 🚧 | 审批闭环 + 审计已完成 | M1 |
 | GraphRAG | 🚧 | 图谱、导入、多跳影响、图谱页、问答证据完成；路径命中率评测待 M3 |
-| Memory | ⬜ | M3 |
+| Memory | 🚧 | Redis 短期会话 + Postgres 长期记忆 CRUD 已完成，待多轮追问场景测试 | M3 |
 | Benchmark | ⬜ | M3 |
 | 前端 | 🚧 | 登录、文档库、风险问答、供应商图谱已接真实接口；看板、复核台、审计、Benchmark 仍为 mock |
 | 部署与交付 | ⬜ | M3 |

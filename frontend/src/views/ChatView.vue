@@ -1,8 +1,9 @@
 <script setup>
 import { nextTick, onMounted, reactive, ref } from 'vue'
-import { CircleCheck, Clock, Loading } from '@element-plus/icons-vue'
+import { CircleCheck, Clock, Delete, Loading } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { fetchChatModels, streamAnswer } from '../api/chat'
+import { clearSession, getSessionHistory } from '../api/memory'
 
 const question = ref('')
 const running = ref(false)
@@ -12,6 +13,7 @@ const graphPaths = ref([])
 const steps = ref([])
 const riskInfo = ref(null)
 const listRef = ref(null)
+const sessionHistory = ref([])
 
 const models = ref([])
 const selectedModel = ref('')
@@ -156,6 +158,7 @@ async function ask() {
       },
     })
     if (streamError) throw new Error(streamError)
+    loadSessionHistory()
   } catch (error) {
     const detail = streamError || error.message || '回答失败，请稍后重试'
     reply.content = reply.content || detail
@@ -178,7 +181,29 @@ async function scrollToBottom() {
   if (el) el.scrollTop = el.scrollHeight
 }
 
-onMounted(loadModels)
+onMounted(() => {
+  loadModels()
+  loadSessionHistory()
+})
+
+async function loadSessionHistory() {
+  try {
+    const data = await getSessionHistory()
+    sessionHistory.value = data.turns
+  } catch {
+    sessionHistory.value = []
+  }
+}
+
+async function doClearSession() {
+  try {
+    await clearSession()
+    sessionHistory.value = []
+    ElMessage.success('会话历史已清除')
+  } catch {
+    ElMessage.error('清除失败，请稍后重试')
+  }
+}
 </script>
 
 <template>
@@ -293,6 +318,33 @@ onMounted(loadModels)
           :image-size="50"
           description="提问后显示执行进度"
         />
+      </el-card>
+
+      <el-card v-if="riskInfo" shadow="never" class="side risk-side">
+
+      <el-card v-if="sessionHistory.length" shadow="never" class="side">
+        <template #header>
+          会话历史
+          <span class="filtered">（{{ sessionHistory.length }} 轮）</span>
+          <el-button
+            link
+            type="danger"
+            size="small"
+            style="float: right"
+            @click="doClearSession"
+          >
+            <el-icon><Delete /></el-icon>
+            清除
+          </el-button>
+        </template>
+        <div
+          v-for="(turn, index) in sessionHistory.slice().reverse()"
+          :key="index"
+          class="session-turn"
+        >
+          <div class="turn-q">Q{{ sessionHistory.length - index }}: {{ turn.question }}</div>
+          <div class="turn-a">A: {{ turn.answer?.slice(0, 120) }}{{ turn.answer?.length > 120 ? '…' : '' }}</div>
+        </div>
       </el-card>
 
       <el-card v-if="riskInfo" shadow="never" class="side risk-side">
@@ -664,5 +716,26 @@ onMounted(loadModels)
   color: #909399;
   font-size: 12px;
   line-height: 1.6;
+}
+
+.session-turn {
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.session-turn:last-child {
+  border-bottom: none;
+}
+
+.turn-q {
+  color: #1677ff;
+  font-weight: 500;
+}
+
+.turn-a {
+  margin-top: 2px;
+  color: #606266;
 }
 </style>

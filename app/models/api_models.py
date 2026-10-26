@@ -230,6 +230,56 @@ class DecisionRequest(BaseModel):
     comment: str | None = Field(default=None, max_length=500)
 
 
+# ── 会话记忆 ──
+
+
+class SessionHistoryResponse(BaseModel):
+    """当前会话的对话历史。"""
+
+    turns: list[dict]
+    """每项：{role, question, answer, timestamp}"""
+    count: int
+    """历史轮次数"""
+
+
+class LongTermMemoryCreateRequest(BaseModel):
+    """创建长期记忆的请求体。"""
+
+    category: str = Field(default="note", max_length=32)
+    title: str = Field(min_length=1, max_length=255)
+    content: str = Field(min_length=1, max_length=5000)
+    evidence: str | None = Field(default=None, max_length=5000)
+
+
+class LongTermMemoryUpdateRequest(BaseModel):
+    """更新长期记忆（所有字段可选）。"""
+
+    title: str | None = Field(default=None, min_length=1, max_length=255)
+    content: str | None = Field(default=None, min_length=1, max_length=5000)
+    category: str | None = Field(default=None, max_length=32)
+
+
+class LongTermMemoryResponse(BaseModel):
+    """长期记忆的接口返回体。"""
+
+    memory_id: str
+    username: str
+    role: str
+    category: str
+    title: str
+    content: str
+    evidence: str | None
+    created_at: datetime
+    updated_at: datetime
+
+
+class LongTermMemoryListResponse(BaseModel):
+    """长期记忆列表。"""
+
+    items: list[LongTermMemoryResponse]
+    total: int
+
+
 class GraphOverviewResponse(BaseModel):
     """当前角色可见的子图。"""
 

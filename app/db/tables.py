@@ -115,3 +115,37 @@ class AuditLog(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=now_local, nullable=False
     )
+
+
+class LongTermMemory(Base):
+    """长期记忆：用户偏好、重要洞察、反馈笔记，跨会话持久化。
+
+    与 Redis 短期会话不同：
+    - 短期记忆自动追加/过期，用于多轮对话上下文
+    - 长期记忆由用户或系统显式保存，用于跨会话的知识积累
+    """
+
+    __tablename__ = "long_term_memories"
+
+    memory_id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=new_uuid
+    )
+    username: Mapped[str] = mapped_column(
+        String(128), nullable=False, index=True
+    )
+    # 记录时的角色（方便按角色过滤记忆）
+    role: Mapped[str] = mapped_column(String(32), nullable=False)
+    # 记忆分类：preference（偏好）、insight（洞察）、feedback（反馈）、note（笔记）
+    category: Mapped[str] = mapped_column(String(32), nullable=False, default="note")
+    # 记忆的简短标题，方便列表展示
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    # 正文内容
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    # 关联的证据（JSON 字符串，可选存 hits / graph_paths）
+    evidence: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=now_local, nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=now_local, onupdate=now_local, nullable=False
+    )
