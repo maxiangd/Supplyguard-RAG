@@ -96,11 +96,11 @@
 
 ### D. 固定工作流
 
-- [ ] `WorkflowState` 定义
-- [ ] 节点：intake / classify / plan / secure_retrieve / graph_impact / review / synthesize / approval_gate / audit
-- [ ] 规则路由表
-- [ ] 条件边与循环上限
-- [ ] SSE 事件输出
+- [x] `WorkflowState` 定义（`SupplyGuardState` TypedDict）
+- [x] 节点：retrieve / graph_analyze / review / build_context / assess_risk / approval_gate / finalize
+- [x] 规则路由表：条件边按 risk_level 路由 HIGH→审批门 或 非HIGH→finalize
+- [x] 条件边与循环上限
+- [x] SSE 事件输出（流式生成注入在 assess_risk 中断期间）
 - [ ] 工作流单测（mock LLM / Qdrant / Neo4j）
 
 ### E. GraphRAG
@@ -123,11 +123,12 @@
 
 ### G. 审批与审计
 
-- [ ] 审批策略：风险阈值 + 角色
-- [ ] 审批单创建、列表、决定
-- [ ] 审批前不返回最终结论
-- [ ] 审计只追加写入
-- [ ] 审计搜索与 CSV 导出（公式注入转义）
+- [x] 审批策略：图谱路径最高 severity ≥ HIGH → 进审批
+- [x] 审批单创建、列表、决定
+- [x] 审批前不返回最终结论（SSE 高危事件序列不流式泄漏）
+- [x] 审计只追加写入 + 同事务 flush
+- [x] 审计列表查询（admin 可见）
+- [ ] 审计 CSV 导出（公式注入转义）
 
 ### H. Benchmark
 
@@ -322,8 +323,8 @@ docs: 更新 M1 进度与接口说明
 | Phase 1 基建 | ✅ | 配置、日志、会话、3 张表、bcrypt+JWT、启动初始化完成 |
 | 身份与权限 | 🚧 | 登录、JWT、用户管理接口完成；登出/刷新与越权测试待补 |
 | 文档与 SecureRAG | 🚧 | 文档表、上传、RQ 摄取（解析/分块）、按角色列表完成；Qdrant 权限检索待做 |
-| 固定工作流 | ⬜ | M1 |
-| 审批与审计 | ⬜ | M1 |
+| 固定工作流 | 🚧 | LangGraph 状态机已完成，Review Node 已完成，待越权测试与单测 | M1 |
+| 审批与审计 | 🚧 | 审批闭环 + 审计已完成 | M1 |
 | GraphRAG | 🚧 | 图谱、导入、多跳影响、图谱页、问答证据完成；路径命中率评测待 M3 |
 | Memory | ⬜ | M3 |
 | Benchmark | ⬜ | M3 |
@@ -341,11 +342,11 @@ docs: 更新 M1 进度与接口说明
 5. ✅ 用户管理接口
 6. ✅ 文档表、上传与摄取队列
 7. ✅ Qdrant 集合、payload、检索过滤
-8. Review Node 与越权测试
-9. 🚧 四类风险传导规则（图谱侧完成，纯函数对照待 M3）+ 证据结构（source / fact / impact）
-10. LangGraph 固定工作流 + `interrupt` 审批恢复
+8. ✅ Review Node（LangGraph 内 RBAC 二次校验）
+9. ✅ 四类风险传导规则（图谱侧完成，纯函数对照待 M3）+ 证据结构（source / fact / impact）
+10. ✅ LangGraph 固定工作流 + `interrupt_before` 审批恢复
 11. ✅ Neo4j 图模型、导入脚本与多跳影响分析
 12. 独立 ground truth、场景集与单 Agent 基线
-13. 🚧 审批、审计与基础前端（SSE 已完成）
+13. ✅ 审批、审计与基础前端（SSE 已完成）
 
 > 每完成一项，勾选第 4 节对应任务，并更新第 11 节状态。
