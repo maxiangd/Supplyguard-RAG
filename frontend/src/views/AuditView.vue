@@ -1,7 +1,7 @@
 <script setup>
 import { onMounted, ref } from 'vue'
-import { ElMessage } from 'element-plus'
-import { fetchAuditLogs } from '../api/audit'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { clearAuditLogs, fetchAuditLogs } from '../api/audit'
 
 const loading = ref(false)
 const rows = ref([])
@@ -78,6 +78,25 @@ function exportCsv() {
   ElMessage.success(`已导出 ${total.value} 条记录`)
 }
 
+async function clearAll() {
+  try {
+    await ElMessageBox.confirm(
+      '确定要清空全部审计日志吗？此操作不可恢复。',
+      '确认清空',
+      { confirmButtonText: '清空', cancelButtonText: '取消', type: 'danger' },
+    )
+  } catch {
+    return
+  }
+  try {
+    const result = await clearAuditLogs()
+    ElMessage.success(`已清空 ${result.deleted} 条日志`)
+    await load()
+  } catch (error) {
+    ElMessage.error(error.response?.data?.detail ?? '清空失败')
+  }
+}
+
 onMounted(load)
 </script>
 
@@ -86,7 +105,8 @@ onMounted(load)
     <div class="toolbar">
       <el-button type="primary" :loading="loading" @click="load">刷新</el-button>
       <el-button @click="exportCsv">导出 CSV</el-button>
-      <span class="hint">仅记录审批全链路，只追加不可修改</span>
+      <el-button type="danger" plain @click="clearAll">清空日志</el-button>
+      <span class="hint">仅记录审批全链路</span>
     </div>
 
     <el-table v-loading="loading" :data="rows" size="small">
