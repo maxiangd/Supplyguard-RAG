@@ -1,0 +1,1458 @@
+{
+  "nodes": [
+    {
+      "id": "region-jiangxi-yichun",
+      "name": "中国江西（宜春）",
+      "type": "region",
+      "risk_level": "high",
+      "region": "江西宜春",
+      "aliases": [
+        "江西",
+        "宜春",
+        "枧下窝"
+      ],
+      "allowed_roles": [
+        "admin",
+        "procurement",
+        "logistics",
+        "finance",
+        "quality"
+      ]
+    },
+    {
+      "id": "region-fujian-ningde",
+      "name": "中国福建（宁德）",
+      "type": "region",
+      "risk_level": "medium",
+      "region": "福建宁德",
+      "aliases": [
+        "福建",
+        "宁德"
+      ],
+      "allowed_roles": [
+        "admin",
+        "procurement",
+        "logistics",
+        "finance",
+        "quality"
+      ]
+    },
+    {
+      "id": "region-jiangsu-liyang",
+      "name": "中国江苏（溧阳）",
+      "type": "region",
+      "risk_level": "medium",
+      "region": "江苏溧阳",
+      "aliases": [
+        "江苏",
+        "溧阳"
+      ],
+      "allowed_roles": [
+        "admin",
+        "procurement",
+        "logistics",
+        "finance",
+        "quality"
+      ]
+    },
+    {
+      "id": "region-sichuan-yibin",
+      "name": "中国四川（宜宾）",
+      "type": "region",
+      "risk_level": "low",
+      "region": "四川宜宾",
+      "aliases": [
+        "四川",
+        "宜宾"
+      ],
+      "allowed_roles": [
+        "admin",
+        "procurement",
+        "logistics",
+        "finance",
+        "quality"
+      ]
+    },
+    {
+      "id": "region-guangdong-zhaoqing",
+      "name": "中国广东（肇庆）",
+      "type": "region",
+      "risk_level": "low",
+      "region": "广东肇庆",
+      "aliases": [
+        "广东",
+        "肇庆"
+      ],
+      "allowed_roles": [
+        "admin",
+        "procurement",
+        "logistics",
+        "finance",
+        "quality"
+      ]
+    },
+    {
+      "id": "region-germany",
+      "name": "德国（图林根）",
+      "type": "region",
+      "risk_level": "medium",
+      "region": "德国图林根",
+      "aliases": [
+        "德国",
+        "图林根",
+        "Arnstadt"
+      ],
+      "allowed_roles": [
+        "admin",
+        "procurement",
+        "logistics",
+        "finance",
+        "quality"
+      ]
+    },
+    {
+      "id": "region-hungary",
+      "name": "匈牙利（德布勒森）",
+      "type": "region",
+      "risk_level": "high",
+      "region": "匈牙利德布勒森",
+      "aliases": [
+        "匈牙利",
+        "德布勒森"
+      ],
+      "allowed_roles": [
+        "admin",
+        "procurement",
+        "logistics",
+        "finance",
+        "quality"
+      ]
+    },
+    {
+      "id": "region-indonesia",
+      "name": "印尼（卡拉旺）",
+      "type": "region",
+      "risk_level": "medium",
+      "region": "印尼卡拉旺",
+      "aliases": [
+        "印尼",
+        "印度尼西亚",
+        "卡拉旺"
+      ],
+      "allowed_roles": [
+        "admin",
+        "procurement",
+        "logistics",
+        "finance",
+        "quality"
+      ]
+    },
+    {
+      "id": "region-spain",
+      "name": "西班牙",
+      "type": "region",
+      "risk_level": "low",
+      "region": "西班牙",
+      "aliases": [
+        "西班牙",
+        "Stellantis"
+      ],
+      "allowed_roles": [
+        "admin",
+        "procurement",
+        "logistics",
+        "finance",
+        "quality"
+      ]
+    },
+    {
+      "id": "region-congo",
+      "name": "刚果（金）",
+      "type": "region",
+      "risk_level": "high",
+      "region": "刚果（金）",
+      "aliases": [
+        "刚果金",
+        "刚果（金）",
+        "刚果"
+      ],
+      "allowed_roles": [
+        "admin",
+        "procurement",
+        "logistics",
+        "finance",
+        "quality"
+      ]
+    },
+    {
+      "id": "region-zimbabwe",
+      "name": "津巴布韦",
+      "type": "region",
+      "risk_level": "medium",
+      "region": "津巴布韦",
+      "aliases": [
+        "津巴布韦"
+      ],
+      "allowed_roles": [
+        "admin",
+        "procurement",
+        "logistics",
+        "finance",
+        "quality"
+      ]
+    },
+    {
+      "id": "supplier-hunan-yuneng",
+      "name": "湖南裕能",
+      "type": "supplier",
+      "risk_level": "medium",
+      "region": "湖南",
+      "aliases": [
+        "湖南裕能",
+        "裕能"
+      ],
+      "allowed_roles": [
+        "admin",
+        "procurement",
+        "finance",
+        "quality"
+      ]
+    },
+    {
+      "id": "supplier-fulin",
+      "name": "富临精工",
+      "type": "supplier",
+      "risk_level": "medium",
+      "region": "四川",
+      "aliases": [
+        "富临精工",
+        "富临"
+      ],
+      "allowed_roles": [
+        "admin",
+        "procurement",
+        "finance",
+        "quality"
+      ]
+    },
+    {
+      "id": "supplier-rongbai",
+      "name": "容百科技",
+      "type": "supplier",
+      "risk_level": "medium",
+      "region": "浙江",
+      "aliases": [
+        "容百科技",
+        "容百"
+      ],
+      "allowed_roles": [
+        "admin",
+        "procurement",
+        "finance",
+        "quality"
+      ]
+    },
+    {
+      "id": "supplier-huayou",
+      "name": "华友钴业",
+      "type": "supplier",
+      "risk_level": "high",
+      "region": "浙江",
+      "aliases": [
+        "华友钴业",
+        "华友",
+        "巴莫科技",
+        "巴莫"
+      ],
+      "allowed_roles": [
+        "admin",
+        "procurement",
+        "finance",
+        "quality"
+      ]
+    },
+    {
+      "id": "supplier-shangtai",
+      "name": "尚太科技",
+      "type": "supplier",
+      "risk_level": "low",
+      "region": "河北",
+      "aliases": [
+        "尚太科技",
+        "尚太"
+      ],
+      "allowed_roles": [
+        "admin",
+        "procurement",
+        "finance",
+        "quality"
+      ]
+    },
+    {
+      "id": "supplier-kaijin",
+      "name": "凯金新能源",
+      "type": "supplier",
+      "risk_level": "medium",
+      "region": "广东",
+      "aliases": [
+        "凯金新能源",
+        "凯金"
+      ],
+      "allowed_roles": [
+        "admin",
+        "procurement",
+        "finance",
+        "quality"
+      ]
+    },
+    {
+      "id": "supplier-enjie",
+      "name": "恩捷股份",
+      "type": "supplier",
+      "risk_level": "high",
+      "region": "上海",
+      "aliases": [
+        "恩捷股份",
+        "恩捷"
+      ],
+      "allowed_roles": [
+        "admin",
+        "procurement",
+        "finance",
+        "quality"
+      ]
+    },
+    {
+      "id": "supplier-xingyuan",
+      "name": "星源材质",
+      "type": "supplier",
+      "risk_level": "medium",
+      "region": "广东",
+      "aliases": [
+        "星源材质",
+        "星源"
+      ],
+      "allowed_roles": [
+        "admin",
+        "procurement",
+        "finance",
+        "quality"
+      ]
+    },
+    {
+      "id": "supplier-jiangsu-guotai",
+      "name": "江苏国泰",
+      "type": "supplier",
+      "risk_level": "low",
+      "region": "江苏",
+      "aliases": [
+        "江苏国泰",
+        "国泰"
+      ],
+      "allowed_roles": [
+        "admin",
+        "procurement",
+        "finance",
+        "quality"
+      ]
+    },
+    {
+      "id": "supplier-tinci",
+      "name": "天赐材料",
+      "type": "supplier",
+      "risk_level": "low",
+      "region": "广东",
+      "aliases": [
+        "天赐材料",
+        "天赐"
+      ],
+      "allowed_roles": [
+        "admin",
+        "procurement",
+        "finance",
+        "quality"
+      ]
+    },
+    {
+      "id": "supplier-capchem",
+      "name": "新宙邦",
+      "type": "supplier",
+      "risk_level": "low",
+      "region": "广东",
+      "aliases": [
+        "新宙邦"
+      ],
+      "allowed_roles": [
+        "admin",
+        "procurement",
+        "finance",
+        "quality"
+      ]
+    },
+    {
+      "id": "supplier-kedali",
+      "name": "科达利",
+      "type": "supplier",
+      "risk_level": "low",
+      "region": "广东",
+      "aliases": [
+        "科达利"
+      ],
+      "allowed_roles": [
+        "admin",
+        "procurement",
+        "finance",
+        "quality"
+      ]
+    },
+    {
+      "id": "factory-ningde-zhangwan",
+      "name": "宁德漳湾基地",
+      "type": "factory",
+      "risk_level": "high",
+      "region": "福建宁德",
+      "aliases": [
+        "漳湾",
+        "宁德基地",
+        "宁德工厂"
+      ],
+      "allowed_roles": [
+        "admin",
+        "procurement",
+        "logistics",
+        "finance",
+        "quality"
+      ]
+    },
+    {
+      "id": "factory-ningde-cheliwan",
+      "name": "宁德车里湾基地",
+      "type": "factory",
+      "risk_level": "medium",
+      "region": "福建宁德",
+      "aliases": [
+        "车里湾"
+      ],
+      "allowed_roles": [
+        "admin",
+        "procurement",
+        "logistics",
+        "finance",
+        "quality"
+      ]
+    },
+    {
+      "id": "factory-liyang",
+      "name": "江苏溧阳基地",
+      "type": "factory",
+      "risk_level": "medium",
+      "region": "江苏溧阳",
+      "aliases": [
+        "溧阳基地",
+        "溧阳工厂"
+      ],
+      "allowed_roles": [
+        "admin",
+        "procurement",
+        "logistics",
+        "finance",
+        "quality"
+      ]
+    },
+    {
+      "id": "factory-yibin",
+      "name": "四川宜宾基地",
+      "type": "factory",
+      "risk_level": "low",
+      "region": "四川宜宾",
+      "aliases": [
+        "宜宾基地",
+        "宜宾工厂"
+      ],
+      "allowed_roles": [
+        "admin",
+        "procurement",
+        "logistics",
+        "finance",
+        "quality"
+      ]
+    },
+    {
+      "id": "factory-zhaoqing",
+      "name": "广东肇庆基地",
+      "type": "factory",
+      "risk_level": "low",
+      "region": "广东肇庆",
+      "aliases": [
+        "肇庆基地",
+        "肇庆工厂"
+      ],
+      "allowed_roles": [
+        "admin",
+        "procurement",
+        "logistics",
+        "finance",
+        "quality"
+      ]
+    },
+    {
+      "id": "factory-yichun-smelter",
+      "name": "宜春冶炼基地",
+      "type": "factory",
+      "risk_level": "high",
+      "region": "江西宜春",
+      "aliases": [
+        "宜春冶炼",
+        "宜春配套冶炼厂"
+      ],
+      "allowed_roles": [
+        "admin",
+        "procurement",
+        "logistics",
+        "finance",
+        "quality"
+      ]
+    },
+    {
+      "id": "factory-arnstadt",
+      "name": "德国图林根工厂",
+      "type": "factory",
+      "risk_level": "medium",
+      "region": "德国图林根",
+      "aliases": [
+        "图林根工厂",
+        "德国工厂",
+        "Arnstadt 工厂"
+      ],
+      "allowed_roles": [
+        "admin",
+        "procurement",
+        "logistics",
+        "finance",
+        "quality"
+      ]
+    },
+    {
+      "id": "factory-debrecen",
+      "name": "匈牙利德布勒森工厂",
+      "type": "factory",
+      "risk_level": "high",
+      "region": "匈牙利德布勒森",
+      "aliases": [
+        "德布勒森工厂",
+        "匈牙利工厂"
+      ],
+      "allowed_roles": [
+        "admin",
+        "procurement",
+        "logistics",
+        "finance",
+        "quality"
+      ]
+    },
+    {
+      "id": "factory-karawang",
+      "name": "印尼卡拉旺工厂",
+      "type": "factory",
+      "risk_level": "medium",
+      "region": "印尼卡拉旺",
+      "aliases": [
+        "卡拉旺工厂",
+        "印尼工厂"
+      ],
+      "allowed_roles": [
+        "admin",
+        "procurement",
+        "logistics",
+        "finance",
+        "quality"
+      ]
+    },
+    {
+      "id": "factory-spain",
+      "name": "西班牙合资工厂",
+      "type": "factory",
+      "risk_level": "low",
+      "region": "西班牙",
+      "aliases": [
+        "西班牙工厂",
+        "西班牙合资工厂"
+      ],
+      "allowed_roles": [
+        "admin",
+        "procurement",
+        "logistics",
+        "finance",
+        "quality"
+      ]
+    },
+    {
+      "id": "port-sanduao",
+      "name": "三都澳漳湾作业区",
+      "type": "port",
+      "risk_level": "medium",
+      "region": "福建宁德",
+      "aliases": [
+        "三都澳",
+        "漳湾作业区"
+      ],
+      "allowed_roles": [
+        "admin",
+        "logistics"
+      ]
+    },
+    {
+      "id": "port-xiamen",
+      "name": "厦门港",
+      "type": "port",
+      "risk_level": "medium",
+      "region": "福建厦门",
+      "aliases": [
+        "厦门港"
+      ],
+      "allowed_roles": [
+        "admin",
+        "logistics"
+      ]
+    },
+    {
+      "id": "port-shanghai",
+      "name": "上海港",
+      "type": "port",
+      "risk_level": "low",
+      "region": "上海",
+      "aliases": [
+        "上海港"
+      ],
+      "allowed_roles": [
+        "admin",
+        "logistics"
+      ]
+    },
+    {
+      "id": "port-hamburg",
+      "name": "汉堡港",
+      "type": "port",
+      "risk_level": "medium",
+      "region": "德国",
+      "aliases": [
+        "汉堡港"
+      ],
+      "allowed_roles": [
+        "admin",
+        "logistics"
+      ]
+    },
+    {
+      "id": "route-ningde-xiamen",
+      "name": "宁德—厦门支线",
+      "type": "route",
+      "risk_level": "low",
+      "region": "福建",
+      "aliases": [
+        "宁德-厦门支线",
+        "宁德—厦门",
+        "定班支线"
+      ],
+      "allowed_roles": [
+        "admin",
+        "logistics"
+      ]
+    },
+    {
+      "id": "route-arctic",
+      "name": "中欧北极快航",
+      "type": "route",
+      "risk_level": "medium",
+      "region": "欧洲",
+      "aliases": [
+        "北极快航",
+        "冰上丝绸之路",
+        "北极航线"
+      ],
+      "allowed_roles": [
+        "admin",
+        "logistics"
+      ]
+    },
+    {
+      "id": "route-redsea",
+      "name": "红海—苏伊士航线",
+      "type": "route",
+      "risk_level": "high",
+      "region": "欧洲",
+      "aliases": [
+        "红海",
+        "苏伊士",
+        "红海航线"
+      ],
+      "allowed_roles": [
+        "admin",
+        "logistics"
+      ]
+    },
+    {
+      "id": "event-yichun-eia",
+      "name": "宜春枧下窝环评拟批准公示",
+      "type": "event",
+      "risk_level": "medium",
+      "region": "江西宜春",
+      "aliases": [
+        "环评公示",
+        "拟批准公示"
+      ],
+      "allowed_roles": [
+        "admin",
+        "procurement",
+        "finance"
+      ]
+    },
+    {
+      "id": "event-yichun-suspend",
+      "name": "宜春枧下窝锂矿停产",
+      "type": "event",
+      "risk_level": "high",
+      "region": "江西宜春",
+      "aliases": [
+        "枧下窝停产",
+        "锂矿停产"
+      ],
+      "allowed_roles": [
+        "admin",
+        "procurement",
+        "finance"
+      ]
+    },
+    {
+      "id": "event-carbonate-price",
+      "name": "碳酸锂价格回落",
+      "type": "event",
+      "risk_level": "medium",
+      "region": "中国",
+      "aliases": [
+        "碳酸锂价格",
+        "锂价"
+      ],
+      "allowed_roles": [
+        "admin",
+        "procurement",
+        "finance"
+      ]
+    },
+    {
+      "id": "event-cobalt-drc",
+      "name": "刚果（金）钴出口限制",
+      "type": "event",
+      "risk_level": "high",
+      "region": "刚果（金）",
+      "aliases": [
+        "钴出口限制",
+        "刚果金钴"
+      ],
+      "allowed_roles": [
+        "admin",
+        "procurement",
+        "finance"
+      ]
+    },
+    {
+      "id": "event-zimbabwe-lithium",
+      "name": "津巴布韦锂出口收紧",
+      "type": "event",
+      "risk_level": "medium",
+      "region": "津巴布韦",
+      "aliases": [
+        "津巴布韦锂",
+        "锂出口收紧"
+      ],
+      "allowed_roles": [
+        "admin",
+        "procurement",
+        "finance"
+      ]
+    },
+    {
+      "id": "event-indonesia-nickel",
+      "name": "印尼镍政策调整预期",
+      "type": "event",
+      "risk_level": "medium",
+      "region": "印尼",
+      "aliases": [
+        "印尼镍",
+        "镍政策"
+      ],
+      "allowed_roles": [
+        "admin",
+        "procurement",
+        "finance"
+      ]
+    },
+    {
+      "id": "event-polestar-recall",
+      "name": "极星 4 召回",
+      "type": "event",
+      "risk_level": "high",
+      "region": "福建宁德",
+      "aliases": [
+        "极星",
+        "极星4",
+        "极星 4"
+      ],
+      "allowed_roles": [
+        "admin",
+        "quality"
+      ]
+    },
+    {
+      "id": "event-li-mega-recall",
+      "name": "理想 MEGA 召回",
+      "type": "event",
+      "risk_level": "medium",
+      "region": "福建宁德",
+      "aliases": [
+        "理想 MEGA",
+        "理想MEGA",
+        "MEGA 召回"
+      ],
+      "allowed_roles": [
+        "admin",
+        "quality"
+      ]
+    },
+    {
+      "id": "event-zeekr-dispute",
+      "name": "极氪 001 电池纠纷和解",
+      "type": "event",
+      "risk_level": "low",
+      "region": "福建宁德",
+      "aliases": [
+        "极氪",
+        "极氪001",
+        "极氪 001"
+      ],
+      "allowed_roles": [
+        "admin",
+        "quality"
+      ]
+    },
+    {
+      "id": "event-debrecen-ramp",
+      "name": "匈牙利工厂试生产与产能爬坡",
+      "type": "event",
+      "risk_level": "medium",
+      "region": "匈牙利德布勒森",
+      "aliases": [
+        "产能爬坡",
+        "德布勒森试生产"
+      ],
+      "allowed_roles": [
+        "admin",
+        "procurement",
+        "finance",
+        "logistics"
+      ]
+    },
+    {
+      "id": "event-redsea-diversion",
+      "name": "红海航线绕行",
+      "type": "event",
+      "risk_level": "high",
+      "region": "欧洲",
+      "aliases": [
+        "红海绕行",
+        "绕行好望角"
+      ],
+      "allowed_roles": [
+        "admin",
+        "logistics"
+      ]
+    },
+    {
+      "id": "event-dangerous-berth",
+      "name": "危险品舱位紧张",
+      "type": "event",
+      "risk_level": "medium",
+      "region": "福建宁德",
+      "aliases": [
+        "舱位紧张",
+        "危险品舱位"
+      ],
+      "allowed_roles": [
+        "admin",
+        "logistics"
+      ]
+    },
+    {
+      "id": "event-eu-battery-rule",
+      "name": "欧盟电池法规合规要求",
+      "type": "event",
+      "risk_level": "medium",
+      "region": "欧洲",
+      "aliases": [
+        "欧盟电池法规",
+        "电池法规",
+        "碳足迹"
+      ],
+      "allowed_roles": [
+        "admin",
+        "logistics",
+        "quality"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "source": "supplier-hunan-yuneng",
+      "target": "factory-ningde-zhangwan",
+      "relation": "SUPPLIES",
+      "material": "磷酸铁锂正极",
+      "share": "约35%"
+    },
+    {
+      "source": "supplier-hunan-yuneng",
+      "target": "factory-liyang",
+      "relation": "SUPPLIES",
+      "material": "磷酸铁锂正极",
+      "share": "约35%"
+    },
+    {
+      "source": "supplier-hunan-yuneng",
+      "target": "factory-yibin",
+      "relation": "SUPPLIES",
+      "material": "磷酸铁锂正极",
+      "share": "约35%"
+    },
+    {
+      "source": "supplier-fulin",
+      "target": "factory-ningde-zhangwan",
+      "relation": "SUPPLIES",
+      "material": "高压密磷酸铁锂",
+      "share": "约30%"
+    },
+    {
+      "source": "supplier-fulin",
+      "target": "factory-liyang",
+      "relation": "SUPPLIES",
+      "material": "高压密磷酸铁锂",
+      "share": "约30%"
+    },
+    {
+      "source": "supplier-fulin",
+      "target": "factory-zhaoqing",
+      "relation": "SUPPLIES",
+      "material": "高压密磷酸铁锂",
+      "share": "约30%"
+    },
+    {
+      "source": "supplier-rongbai",
+      "target": "factory-ningde-zhangwan",
+      "relation": "SUPPLIES",
+      "material": "三元正极",
+      "share": "约60%"
+    },
+    {
+      "source": "supplier-rongbai",
+      "target": "factory-liyang",
+      "relation": "SUPPLIES",
+      "material": "三元正极",
+      "share": "约60%"
+    },
+    {
+      "source": "supplier-rongbai",
+      "target": "factory-debrecen",
+      "relation": "SUPPLIES",
+      "material": "三元正极",
+      "share": "约60%"
+    },
+    {
+      "source": "supplier-huayou",
+      "target": "factory-ningde-zhangwan",
+      "relation": "SUPPLIES",
+      "material": "三元前驱体",
+      "share": "约20%"
+    },
+    {
+      "source": "supplier-huayou",
+      "target": "factory-arnstadt",
+      "relation": "SUPPLIES",
+      "material": "三元前驱体",
+      "share": "约20%"
+    },
+    {
+      "source": "supplier-huayou",
+      "target": "factory-debrecen",
+      "relation": "SUPPLIES",
+      "material": "三元前驱体",
+      "share": "约20%"
+    },
+    {
+      "source": "supplier-shangtai",
+      "target": "factory-ningde-zhangwan",
+      "relation": "SUPPLIES",
+      "material": "人造石墨负极",
+      "share": "约35%"
+    },
+    {
+      "source": "supplier-shangtai",
+      "target": "factory-yibin",
+      "relation": "SUPPLIES",
+      "material": "人造石墨负极",
+      "share": "约35%"
+    },
+    {
+      "source": "supplier-kaijin",
+      "target": "factory-ningde-zhangwan",
+      "relation": "SUPPLIES",
+      "material": "人造石墨负极",
+      "share": "约40%"
+    },
+    {
+      "source": "supplier-kaijin",
+      "target": "factory-liyang",
+      "relation": "SUPPLIES",
+      "material": "人造石墨负极",
+      "share": "约40%"
+    },
+    {
+      "source": "supplier-kaijin",
+      "target": "factory-zhaoqing",
+      "relation": "SUPPLIES",
+      "material": "人造石墨负极",
+      "share": "约40%"
+    },
+    {
+      "source": "supplier-enjie",
+      "target": "factory-ningde-zhangwan",
+      "relation": "SUPPLIES",
+      "material": "湿法隔膜",
+      "share": "约40%"
+    },
+    {
+      "source": "supplier-enjie",
+      "target": "factory-liyang",
+      "relation": "SUPPLIES",
+      "material": "湿法隔膜",
+      "share": "约40%"
+    },
+    {
+      "source": "supplier-enjie",
+      "target": "factory-debrecen",
+      "relation": "SUPPLIES",
+      "material": "湿法隔膜",
+      "share": "约40%"
+    },
+    {
+      "source": "supplier-xingyuan",
+      "target": "factory-ningde-zhangwan",
+      "relation": "SUPPLIES",
+      "material": "隔膜",
+      "share": "约40%"
+    },
+    {
+      "source": "supplier-xingyuan",
+      "target": "factory-yibin",
+      "relation": "SUPPLIES",
+      "material": "隔膜",
+      "share": "约40%"
+    },
+    {
+      "source": "supplier-xingyuan",
+      "target": "factory-arnstadt",
+      "relation": "SUPPLIES",
+      "material": "隔膜",
+      "share": "约40%"
+    },
+    {
+      "source": "supplier-jiangsu-guotai",
+      "target": "factory-ningde-zhangwan",
+      "relation": "SUPPLIES",
+      "material": "电解液",
+      "share": "约35%"
+    },
+    {
+      "source": "supplier-jiangsu-guotai",
+      "target": "factory-liyang",
+      "relation": "SUPPLIES",
+      "material": "电解液",
+      "share": "约35%"
+    },
+    {
+      "source": "supplier-tinci",
+      "target": "factory-ningde-zhangwan",
+      "relation": "SUPPLIES",
+      "material": "电解液",
+      "share": "约25%"
+    },
+    {
+      "source": "supplier-tinci",
+      "target": "factory-yibin",
+      "relation": "SUPPLIES",
+      "material": "电解液",
+      "share": "约25%"
+    },
+    {
+      "source": "supplier-capchem",
+      "target": "factory-ningde-zhangwan",
+      "relation": "SUPPLIES",
+      "material": "电解液",
+      "share": "约20%"
+    },
+    {
+      "source": "supplier-capchem",
+      "target": "factory-arnstadt",
+      "relation": "SUPPLIES",
+      "material": "电解液",
+      "share": "约20%"
+    },
+    {
+      "source": "supplier-capchem",
+      "target": "factory-debrecen",
+      "relation": "SUPPLIES",
+      "material": "电解液",
+      "share": "约20%"
+    },
+    {
+      "source": "supplier-kedali",
+      "target": "factory-ningde-zhangwan",
+      "relation": "SUPPLIES",
+      "material": "电池结构件",
+      "share": "主要供应商"
+    },
+    {
+      "source": "supplier-kedali",
+      "target": "factory-liyang",
+      "relation": "SUPPLIES",
+      "material": "电池结构件",
+      "share": "主要供应商"
+    },
+    {
+      "source": "supplier-kedali",
+      "target": "factory-debrecen",
+      "relation": "SUPPLIES",
+      "material": "电池结构件",
+      "share": "主要供应商"
+    },
+    {
+      "source": "supplier-hunan-yuneng",
+      "target": "region-jiangxi-yichun",
+      "relation": "SOURCED_FROM",
+      "material": "锂云母/碳酸锂"
+    },
+    {
+      "source": "supplier-fulin",
+      "target": "region-jiangxi-yichun",
+      "relation": "SOURCED_FROM",
+      "material": "碳酸锂"
+    },
+    {
+      "source": "supplier-rongbai",
+      "target": "region-indonesia",
+      "relation": "SOURCED_FROM",
+      "material": "镍"
+    },
+    {
+      "source": "supplier-huayou",
+      "target": "region-congo",
+      "relation": "SOURCED_FROM",
+      "material": "钴"
+    },
+    {
+      "source": "supplier-huayou",
+      "target": "region-indonesia",
+      "relation": "SOURCED_FROM",
+      "material": "镍"
+    },
+    {
+      "source": "factory-ningde-zhangwan",
+      "target": "region-fujian-ningde",
+      "relation": "LOCATED_IN"
+    },
+    {
+      "source": "factory-ningde-cheliwan",
+      "target": "region-fujian-ningde",
+      "relation": "LOCATED_IN"
+    },
+    {
+      "source": "factory-liyang",
+      "target": "region-jiangsu-liyang",
+      "relation": "LOCATED_IN"
+    },
+    {
+      "source": "factory-yibin",
+      "target": "region-sichuan-yibin",
+      "relation": "LOCATED_IN"
+    },
+    {
+      "source": "factory-zhaoqing",
+      "target": "region-guangdong-zhaoqing",
+      "relation": "LOCATED_IN"
+    },
+    {
+      "source": "factory-yichun-smelter",
+      "target": "region-jiangxi-yichun",
+      "relation": "LOCATED_IN"
+    },
+    {
+      "source": "factory-arnstadt",
+      "target": "region-germany",
+      "relation": "LOCATED_IN"
+    },
+    {
+      "source": "factory-debrecen",
+      "target": "region-hungary",
+      "relation": "LOCATED_IN"
+    },
+    {
+      "source": "factory-karawang",
+      "target": "region-indonesia",
+      "relation": "LOCATED_IN"
+    },
+    {
+      "source": "factory-spain",
+      "target": "region-spain",
+      "relation": "LOCATED_IN"
+    },
+    {
+      "source": "factory-yichun-smelter",
+      "target": "factory-ningde-zhangwan",
+      "relation": "FEEDS",
+      "material": "碳酸锂"
+    },
+    {
+      "source": "factory-yichun-smelter",
+      "target": "factory-liyang",
+      "relation": "FEEDS",
+      "material": "碳酸锂"
+    },
+    {
+      "source": "factory-yichun-smelter",
+      "target": "factory-yibin",
+      "relation": "FEEDS",
+      "material": "碳酸锂"
+    },
+    {
+      "source": "factory-ningde-zhangwan",
+      "target": "port-sanduao",
+      "relation": "SHIPS_VIA"
+    },
+    {
+      "source": "factory-ningde-cheliwan",
+      "target": "port-sanduao",
+      "relation": "SHIPS_VIA"
+    },
+    {
+      "source": "factory-liyang",
+      "target": "port-shanghai",
+      "relation": "SHIPS_VIA"
+    },
+    {
+      "source": "factory-yibin",
+      "target": "port-shanghai",
+      "relation": "SHIPS_VIA"
+    },
+    {
+      "source": "factory-zhaoqing",
+      "target": "port-xiamen",
+      "relation": "SHIPS_VIA"
+    },
+    {
+      "source": "factory-yichun-smelter",
+      "target": "port-xiamen",
+      "relation": "SHIPS_VIA"
+    },
+    {
+      "source": "factory-arnstadt",
+      "target": "port-hamburg",
+      "relation": "SHIPS_VIA"
+    },
+    {
+      "source": "factory-debrecen",
+      "target": "port-hamburg",
+      "relation": "SHIPS_VIA"
+    },
+    {
+      "source": "factory-spain",
+      "target": "port-hamburg",
+      "relation": "SHIPS_VIA"
+    },
+    {
+      "source": "route-ningde-xiamen",
+      "target": "port-sanduao",
+      "relation": "CONNECTS"
+    },
+    {
+      "source": "route-ningde-xiamen",
+      "target": "port-xiamen",
+      "relation": "CONNECTS"
+    },
+    {
+      "source": "route-arctic",
+      "target": "port-xiamen",
+      "relation": "CONNECTS"
+    },
+    {
+      "source": "route-arctic",
+      "target": "port-hamburg",
+      "relation": "CONNECTS"
+    },
+    {
+      "source": "route-redsea",
+      "target": "port-xiamen",
+      "relation": "CONNECTS"
+    },
+    {
+      "source": "route-redsea",
+      "target": "port-hamburg",
+      "relation": "CONNECTS"
+    }
+  ],
+  "impacts": [
+    {
+      "event": "event-yichun-eia",
+      "target": "region-jiangxi-yichun",
+      "rule": "REGION",
+      "severity": "MEDIUM",
+      "reason": "环评公示期至 10-28，采矿证与实际复产时间未定"
+    },
+    {
+      "event": "event-yichun-suspend",
+      "target": "region-jiangxi-yichun",
+      "rule": "REGION",
+      "severity": "HIGH",
+      "reason": "锂云母供给受限，碳酸锂价格大幅波动"
+    },
+    {
+      "event": "event-carbonate-price",
+      "target": "supplier-hunan-yuneng",
+      "rule": "DIRECT",
+      "severity": "MEDIUM",
+      "reason": "正极材料采购成本下降，库存减值风险上升"
+    },
+    {
+      "event": "event-carbonate-price",
+      "target": "supplier-fulin",
+      "rule": "DIRECT",
+      "severity": "MEDIUM",
+      "reason": "正极材料采购成本下降，库存减值风险上升"
+    },
+    {
+      "event": "event-carbonate-price",
+      "target": "supplier-rongbai",
+      "rule": "DIRECT",
+      "severity": "MEDIUM",
+      "reason": "正极材料采购成本下降，库存减值风险上升"
+    },
+    {
+      "event": "event-cobalt-drc",
+      "target": "supplier-huayou",
+      "rule": "DIRECT",
+      "severity": "HIGH",
+      "reason": "钴原料供应与成本受出口限制影响"
+    },
+    {
+      "event": "event-cobalt-drc",
+      "target": "region-congo",
+      "rule": "REGION",
+      "severity": "HIGH",
+      "reason": "钴出口限制持续，资源端不确定性高"
+    },
+    {
+      "event": "event-zimbabwe-lithium",
+      "target": "region-zimbabwe",
+      "rule": "REGION",
+      "severity": "MEDIUM",
+      "reason": "锂精矿供给收紧"
+    },
+    {
+      "event": "event-indonesia-nickel",
+      "target": "region-indonesia",
+      "rule": "REGION",
+      "severity": "MEDIUM",
+      "reason": "镍资源政策不确定性"
+    },
+    {
+      "event": "event-indonesia-nickel",
+      "target": "factory-karawang",
+      "rule": "DIRECT",
+      "severity": "MEDIUM",
+      "reason": "本地一体化项目直接受资源政策影响"
+    },
+    {
+      "event": "event-polestar-recall",
+      "target": "factory-ningde-zhangwan",
+      "rule": "DIRECT",
+      "severity": "HIGH",
+      "reason": "内阻异常电芯由宁德基地供应"
+    },
+    {
+      "event": "event-polestar-recall",
+      "target": "supplier-rongbai",
+      "rule": "DIRECT",
+      "severity": "HIGH",
+      "reason": "三元正极材料批次追溯"
+    },
+    {
+      "event": "event-polestar-recall",
+      "target": "supplier-huayou",
+      "rule": "DIRECT",
+      "severity": "HIGH",
+      "reason": "三元前驱体批次追溯"
+    },
+    {
+      "event": "event-li-mega-recall",
+      "target": "factory-ningde-zhangwan",
+      "rule": "DIRECT",
+      "severity": "MEDIUM",
+      "reason": "冷却液问题导致电池包异常，未认定电芯本体缺陷"
+    },
+    {
+      "event": "event-zeekr-dispute",
+      "target": "factory-ningde-zhangwan",
+      "rule": "DIRECT",
+      "severity": "LOW",
+      "reason": "已和解并为约 3.82 万辆更换电池"
+    },
+    {
+      "event": "event-debrecen-ramp",
+      "target": "factory-debrecen",
+      "rule": "DIRECT",
+      "severity": "MEDIUM",
+      "reason": "试生产阶段，短期交付弹性有限"
+    },
+    {
+      "event": "event-redsea-diversion",
+      "target": "route-redsea",
+      "rule": "ROUTE",
+      "severity": "HIGH",
+      "reason": "绕行拉长交付周期并推高运费"
+    },
+    {
+      "event": "event-dangerous-berth",
+      "target": "port-sanduao",
+      "rule": "PORT",
+      "severity": "MEDIUM",
+      "reason": "危险品舱位紧张，需提前订舱"
+    },
+    {
+      "event": "event-dangerous-berth",
+      "target": "port-xiamen",
+      "rule": "PORT",
+      "severity": "MEDIUM",
+      "reason": "危险品舱位紧张，需提前订舱"
+    },
+    {
+      "event": "event-eu-battery-rule",
+      "target": "region-germany",
+      "rule": "REGION",
+      "severity": "MEDIUM",
+      "reason": "合规与碳足迹要求提高"
+    },
+    {
+      "event": "event-eu-battery-rule",
+      "target": "region-hungary",
+      "rule": "REGION",
+      "severity": "MEDIUM",
+      "reason": "合规与碳足迹要求提高"
+    }
+  ]
+}

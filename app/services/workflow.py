@@ -369,32 +369,45 @@ def register_risk_and_approval_nodes(
 ) -> StateGraph:
     """注入依赖 LLM 和 DB 的节点，连好边，编译并返回图。
 
+    幂等：同一进程内多次调用返回同一个已编译图实例。
+    测试时不同用例共享图，节点只注册一次。
+
     这样做的好处：
     - workflow 模块不 import chat/approval/audit 模块，避免循环依赖
     - 图结构集中在一处声明，清晰可读
     - 测试时可以用 mock 函数替换这三个节点
     """
-    _builder.add_node("assess_risk", assess_risk_fn)
-    _builder.add_node("approval_gate", approval_gate_fn)
-    _builder.add_node("finalize", finalize_fn)
+    # 幂等：如果已经编译过，直接返回
+    compiled_attr = "_supplyguard_compiled"
+    if hasattr(_builder, compiled_attr):
+        return getattr(_builder, compiled_attr)
 
-    # build_context → assess_risk
-    _builder.add_edge("build_context", "assess_risk")
+    # 检查节点是否已注册（前一次调用已注册）
+    nodes_registered = _builder.builder.nodes if hasattr(_builder, "builder") else {}
+    if "assess_risk" not in nodes_registered:
+        _builder.add_node("assess_risk", assess_risk_fn)
+        _builder.add_node("approval_gate", approval_gate_fn)
+        _builder.add_node("finalize", finalize_fn)
 
-    # assess_risk → 条件边 → approval_gate 或 finalize
-    _builder.add_conditional_edges("assess_risk", _build_conditional_edge, {
-        "approval_gate": "approval_gate",
-        "finalize": "finalize",
-    })
+        # build_context → assess_risk
+        _builder.add_edge("build_context", "assess_risk")
 
-    # approval_gate → finalize → END
-    _builder.add_edge("approval_gate", "finalize")
-    _builder.add_edge("finalize", END)
+        # assess_risk → 条件边 → approval_gate 或 finalize
+        _builder.add_conditional_edges("assess_risk", _build_conditional_edge, {
+            "approval_gate": "approval_gate",
+            "finalize": "finalize",
+        })
 
-    return _builder.compile(
+        # approval_gate → finalize → END
+        _builder.add_edge("approval_gate", "finalize")
+        _builder.add_edge("finalize", END)
+
+    compiled = _builder.compile(
         interrupt_before=["assess_risk", "approval_gate"],
         checkpointer=_memory,
     )
+    setattr(_builder, compiled_attr, compiled)
+    return compiled
 
 
 # ---------------------------------------------------------------------------

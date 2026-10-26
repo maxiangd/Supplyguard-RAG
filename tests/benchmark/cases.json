@@ -1,0 +1,358 @@
+[
+  {
+    "id": "case_001",
+    "scenario": "single_event",
+    "question": "宜春枧下窝锂矿停产对宁德时代有什么影响？",
+    "role": "procurement",
+    "expected_entities": [
+      "event-yichun-suspend"
+    ],
+    "expected_path_rules": [
+      "REGION"
+    ],
+    "expected_min_paths": 9,
+    "notes": "procurement Q: 宜春枧下窝锂矿停产对宁德时代有什么影响？..."
+  },
+  {
+    "id": "case_002",
+    "scenario": "single_event",
+    "question": "刚果金钴出口限制对华友钴业的供应有什么影响？",
+    "role": "procurement",
+    "expected_entities": [
+      "event-cobalt-drc",
+      "supplier-huayou"
+    ],
+    "expected_path_rules": [
+      "REGION",
+      "DIRECT"
+    ],
+    "expected_min_paths": 8,
+    "notes": "procurement Q: 刚果金钴出口限制对华友钴业的供应有什么影响？..."
+  },
+  {
+    "id": "case_003",
+    "scenario": "single_event",
+    "question": "红海航线绕行对欧洲交付有什么影响？",
+    "role": "logistics",
+    "expected_entities": [
+      "event-redsea-diversion"
+    ],
+    "expected_path_rules": [
+      "ROUTE"
+    ],
+    "expected_min_paths": 7,
+    "notes": "logistics Q: 红海航线绕行对欧洲交付有什么影响？..."
+  },
+  {
+    "id": "case_004",
+    "scenario": "single_event",
+    "question": "匈牙利工厂试生产进度对欧洲产能有什么影响？",
+    "role": "procurement",
+    "expected_entities": [
+      "factory-debrecen",
+      "region-hungary"
+    ],
+    "expected_path_rules": [
+      "REGION",
+      "DIRECT"
+    ],
+    "expected_min_paths": 2,
+    "notes": "procurement Q: 匈牙利工厂试生产进度对欧洲产能有什么影响？..."
+  },
+  {
+    "id": "case_005",
+    "scenario": "single_event",
+    "question": "极星4召回事件涉及宁德时代哪些供应商？",
+    "role": "quality",
+    "expected_entities": [
+      "event-polestar-recall"
+    ],
+    "expected_path_rules": [
+      "DIRECT"
+    ],
+    "expected_min_paths": 9,
+    "notes": "quality Q: 极星4召回事件涉及宁德时代哪些供应商？..."
+  },
+  {
+    "id": "case_006",
+    "scenario": "single_event",
+    "question": "碳酸锂价格回落对采购策略有什么影响？",
+    "role": "procurement",
+    "expected_entities": [
+      "event-carbonate-price"
+    ],
+    "expected_path_rules": [
+      "DIRECT"
+    ],
+    "expected_min_paths": 12,
+    "notes": "procurement Q: 碳酸锂价格回落对采购策略有什么影响？..."
+  },
+  {
+    "id": "case_007",
+    "scenario": "single_event",
+    "question": "危险品舱位紧张对宁德基地出货有什么影响？",
+    "role": "logistics",
+    "expected_entities": [
+      "event-dangerous-berth",
+      "factory-ningde-zhangwan"
+    ],
+    "expected_path_rules": [
+      "PORT",
+      "SUPPLY"
+    ],
+    "expected_min_paths": 5,
+    "notes": "logistics Q: 危险品舱位紧张对宁德基地出货有什么影响？..."
+  },
+  {
+    "id": "case_008",
+    "scenario": "single_event",
+    "question": "欧盟电池法规对德国和匈牙利工厂有什么合规要求？",
+    "role": "quality",
+    "expected_entities": [
+      "event-eu-battery-rule",
+      "factory-debrecen"
+    ],
+    "expected_path_rules": [
+      "REGION"
+    ],
+    "expected_min_paths": 2,
+    "notes": "quality Q: 欧盟电池法规对德国和匈牙利工厂有什么合规要求？..."
+  },
+  {
+    "id": "case_009",
+    "scenario": "event_pair",
+    "question": "宜春锂矿停产加上津巴布韦锂出口收紧，对上游原料保障有什么影响？",
+    "role": "procurement",
+    "expected_entities": [
+      "event-zimbabwe-lithium",
+      "event-yichun-suspend"
+    ],
+    "expected_path_rules": [
+      "REGION"
+    ],
+    "expected_min_paths": 9,
+    "notes": "procurement Q: 宜春锂矿停产加上津巴布韦锂出口收紧，对上游原料保障..."
+  },
+  {
+    "id": "case_010",
+    "scenario": "event_pair",
+    "question": "红海绕行加上危险品舱位紧张对Q4欧洲出货有什么影响？",
+    "role": "logistics",
+    "expected_entities": [
+      "event-dangerous-berth",
+      "event-redsea-diversion"
+    ],
+    "expected_path_rules": [
+      "ROUTE",
+      "PORT"
+    ],
+    "expected_min_paths": 11,
+    "notes": "logistics Q: 红海绕行加上危险品舱位紧张对Q4欧洲出货有什么影响..."
+  },
+  {
+    "id": "case_011",
+    "scenario": "event_pair",
+    "question": "极星4召回和理想MEGA召回对宁德基地质量管控有什么启示？",
+    "role": "quality",
+    "expected_entities": [
+      "event-li-mega-recall",
+      "factory-ningde-zhangwan",
+      "event-polestar-recall"
+    ],
+    "expected_path_rules": [
+      "DIRECT"
+    ],
+    "expected_min_paths": 11,
+    "notes": "quality Q: 极星4召回和理想MEGA召回对宁德基地质量管控有什..."
+  },
+  {
+    "id": "case_012",
+    "scenario": "event_pair",
+    "question": "刚果金钴出口限制加上印尼镍政策调整对三元正极供应链有什么影响？",
+    "role": "procurement",
+    "expected_entities": [
+      "event-cobalt-drc",
+      "event-indonesia-nickel"
+    ],
+    "expected_path_rules": [
+      "REGION",
+      "DIRECT"
+    ],
+    "expected_min_paths": 18,
+    "notes": "procurement Q: 刚果金钴出口限制加上印尼镍政策调整对三元正极供应链..."
+  },
+  {
+    "id": "case_013",
+    "scenario": "event_pair",
+    "question": "宜春停产和碳酸锂价格回落对正极材料采购有什么交互影响？",
+    "role": "procurement",
+    "expected_entities": [
+      "event-carbonate-price"
+    ],
+    "expected_path_rules": [
+      "DIRECT"
+    ],
+    "expected_min_paths": 12,
+    "notes": "procurement Q: 宜春停产和碳酸锂价格回落对正极材料采购有什么交互影..."
+  },
+  {
+    "id": "case_014",
+    "scenario": "event_pair",
+    "question": "欧盟电池法规加上红海绕行对匈牙利工厂投产节奏有什么影响？",
+    "role": "logistics",
+    "expected_entities": [
+      "event-eu-battery-rule",
+      "factory-debrecen",
+      "event-redsea-diversion"
+    ],
+    "expected_path_rules": [
+      "ROUTE",
+      "DIRECT",
+      "REGION"
+    ],
+    "expected_min_paths": 13,
+    "notes": "logistics Q: 欧盟电池法规加上红海绕行对匈牙利工厂投产节奏有什么..."
+  },
+  {
+    "id": "case_015",
+    "scenario": "cross_role_leak",
+    "question": "极星4召回和理想MEGA召回事件对电池供应商有什么风险？",
+    "role": "procurement",
+    "expected_entities": [
+      "event-li-mega-recall",
+      "event-polestar-recall"
+    ],
+    "expected_path_rules": [],
+    "expected_min_paths": 0,
+    "notes": "quality事件对procurement不可见"
+  },
+  {
+    "id": "case_016",
+    "scenario": "cross_role_leak",
+    "question": "极氪001电池纠纷和解的详细情况是什么？",
+    "role": "logistics",
+    "expected_entities": [
+      "event-zeekr-dispute"
+    ],
+    "expected_path_rules": [],
+    "expected_min_paths": 0,
+    "notes": "quality事件对logistics不可见"
+  },
+  {
+    "id": "case_017",
+    "scenario": "cross_role_leak",
+    "question": "红海航线绕行会影响哪些供应商的原材料运输？",
+    "role": "procurement",
+    "expected_entities": [
+      "event-redsea-diversion"
+    ],
+    "expected_path_rules": [],
+    "expected_min_paths": 0,
+    "notes": "航线/港口对procurement不可见"
+  },
+  {
+    "id": "case_018",
+    "scenario": "cross_role_leak",
+    "question": "哪些供应商的原材料依赖印尼的镍资源？",
+    "role": "logistics",
+    "expected_entities": [
+      "region-indonesia"
+    ],
+    "expected_path_rules": [
+      "REGION"
+    ],
+    "expected_min_paths": 0,
+    "notes": "供应商节点对logistics不可见"
+  },
+  {
+    "id": "case_019",
+    "scenario": "cross_role_leak",
+    "question": "宁德漳湾基地出口走哪个港口最合适？",
+    "role": "finance",
+    "expected_entities": [
+      "factory-ningde-zhangwan",
+      "region-fujian-ningde"
+    ],
+    "expected_path_rules": [
+      "REGION"
+    ],
+    "expected_min_paths": 0,
+    "notes": "港口对finance不可见"
+  },
+  {
+    "id": "case_020",
+    "scenario": "cross_role_leak",
+    "question": "恩捷股份的隔膜供应给了哪些工厂？",
+    "role": "logistics",
+    "expected_entities": [
+      "supplier-enjie"
+    ],
+    "expected_path_rules": [],
+    "expected_min_paths": 0,
+    "notes": "供应商对logistics不可见"
+  },
+  {
+    "id": "case_021",
+    "scenario": "held_out",
+    "question": "特斯拉的4680电池产能如何？",
+    "role": "procurement",
+    "expected_entities": [],
+    "expected_path_rules": [],
+    "expected_min_paths": 0,
+    "notes": "特斯拉不在图谱中"
+  },
+  {
+    "id": "case_022",
+    "scenario": "held_out",
+    "question": "比亚迪的刀片电池有什么优势？",
+    "role": "quality",
+    "expected_entities": [],
+    "expected_path_rules": [],
+    "expected_min_paths": 0,
+    "notes": "比亚迪不在图谱中"
+  },
+  {
+    "id": "case_023",
+    "scenario": "held_out",
+    "question": "光伏行业对储能市场有什么影响？",
+    "role": "procurement",
+    "expected_entities": [],
+    "expected_path_rules": [],
+    "expected_min_paths": 0,
+    "notes": "光伏不在图谱中"
+  },
+  {
+    "id": "case_024",
+    "scenario": "edge_case",
+    "question": "锂",
+    "role": "procurement",
+    "expected_entities": [],
+    "expected_path_rules": [],
+    "expected_min_paths": 0,
+    "notes": "极短问题"
+  },
+  {
+    "id": "case_025",
+    "scenario": "edge_case",
+    "question": "宁德",
+    "role": "admin",
+    "expected_entities": [
+      "region-fujian-ningde"
+    ],
+    "expected_path_rules": [
+      "REGION"
+    ],
+    "expected_min_paths": 4,
+    "notes": "模糊关键词admin全可见"
+  },
+  {
+    "id": "case_026",
+    "scenario": "edge_case",
+    "question": "欧洲 工厂 产能",
+    "role": "logistics",
+    "expected_entities": [],
+    "expected_path_rules": [],
+    "expected_min_paths": 0,
+    "notes": "多关键词"
+  }
+]
