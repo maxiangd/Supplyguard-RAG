@@ -497,3 +497,88 @@ def impact(question: str | None, entity_id: str | None, role: str, max_hops: int
         "entities": [_public(entity) for entity in entities],
         "paths": paths,
     }
+
+
+def alternatives(entity_ids: list[str], entity_type: str, role: str) -> list[dict]:
+    """找出不受影响、可替代的同类型节点。
+
+    港口替代：查哪些港口没有被 AFFECTS 边指向且服务相同工厂。
+    航线替代：查哪些航线没有被 AFFECTS 边指向且连接相同区域。
+    """
+    if entity_type == "port":
+        return _port_alternatives(entity_ids, role)
+    if entity_type == "route":
+        return _route_alternatives(entity_ids, role)
+    return []
+
+
+def _port_alternatives(disrupted_ids: list[str], role: str) -> list[dict]:
+    """排除受影响的港口，返回角色可见的其他港口。"""
+    # 找出受影响港口服务的工厂
+    factory_records = run_query(
+        "MATCH (f:Entity {type: 'factory'})-[:SHIPS_VIA]->(p:Entity) "
+        "WHERE p.id IN $ids RETURN DISTINCT f.id AS fid, f.name AS fname",
+        {"ids": disrupted_ids},
+    )
+    factory_map = {r["fid"]: r["fname"] for r in factory_records}
+
+    # 找有哪些港口被事件影响了（有 AFFECTS 入边的港口）
+    affected_records = run_query(
+        "MATCH (e:Entity {type: 'event'})-[a:AFFECTS]->(p:Entity {type: 'port'}) "
+        "RETURN DISTINCT p.id AS pid"
+    )
+    affected_ids = {r["pid"] for r in affected_records} | set(disrupted_ids)
+
+    # 查所有角色可见且未被影响的港口
+    all_ports = _load_nodes(role)
+    candidates = [p for p in all_ports if p["type"] == "port" and p["id"] not in affected_ids]
+
+    result = []
+    for port in candidates:
+        # 查该港口服务哪些工厂（从上面 factory_map 的工厂里）
+        serving = run_query(
+            "MATCH (f:Entity)-[:SHIPS_VIA]->(p:Entity {id: $pid}) "
+            "WHERE f.id IN $fids RETURN f.name AS name",
+            {"pid": port["id"], "fids": list(factory_map.keys())},
+        )
+        serves = [r["name"] for r in serving]
+        # 也查该港口服务的所有工厂，用于通用替代
+        all_serving = run_query(
+            "MATCH (f:Entity {type: 'factory'})-[:SHIPS_VIA]->(p:Entity {id: $pid}) "
+            "RETURN f.name AS name",
+            {"pid": port["id"]},
+        )
+        all_serves = [r["name"] for r in all_serving if _visible(r, role)]
+
+        entry = _public(port)
+        entry["serves"] = serves if serves else all_serves
+        result.append(entry)
+
+    # 按"能服务多少受影响工厂"排序
+    result.sort(key=lambda p: len(p.get("serves", [])), reverse=True)
+    return result
+
+
+def _route_alternatives(disrupted_ids: list[str], role: str) -> list[dict]:
+    """排除受影响的航线，返回角色可见的其他航线。"""
+    affected_records = run_query(
+        "MATCH (e:Entity {type: 'event'})-[a:AFFECTS]->(r:Entity {type: 'route'}) "
+        "RETURN DISTINCT r.id AS rid"
+    )
+    affected_ids = {r["rid"] for r in affected_records} | set(disrupted_ids)
+
+    all_nodes = _load_nodes(role)
+    candidates = [n for n in all_nodes if n["type"] == "route" and n["id"] not in affected_ids]
+
+    result = []
+    for route in candidates:
+        ports = run_query(
+            "MATCH (rt:Entity {id: $rid})-[:CONNECTS]->(p:Entity) "
+            "RETURN p.name AS name",
+            {"rid": route["id"]},
+        )
+        entry = _public(route)
+        entry["connects"] = [r["name"] for r in ports]
+        result.append(entry)
+
+    return result

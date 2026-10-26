@@ -162,6 +162,7 @@ class AnswerResponse(BaseModel):
     model: str
     hits: list[ChunkHit]
     graph_paths: list[GraphPath] = Field(default_factory=list)
+    approval: dict | None = None
 
 
 class ModelListResponse(BaseModel):
@@ -169,6 +170,64 @@ class ModelListResponse(BaseModel):
 
     models: list[str]
     default: str
+
+
+class ApprovalSummary(BaseModel):
+    """审批单列表项。"""
+
+    approval_id: str
+    question: str
+    risk_level: str
+    reason: str
+    status: str
+    submitted_by: str
+    submitted_role: str
+    decided_by: str | None = None
+    decided_at: datetime | None = None
+    decision_comment: str | None = None
+    created_at: datetime
+
+
+class ApprovalDetail(ApprovalSummary):
+    """审批单详情：结论与证据按可见性返回。"""
+
+    answer: str | None = None
+    answer_visible: bool = False
+    hits: list[ChunkHit] = Field(default_factory=list)
+    graph_paths: list[GraphPath] = Field(default_factory=list)
+
+
+class ApprovalListResponse(BaseModel):
+    """审批单列表。"""
+
+    items: list[ApprovalSummary]
+
+
+class ApprovalDecisionRequest(BaseModel):
+    """批准或驳回请求。"""
+
+    action: Literal["approve", "reject"]
+    comment: str | None = Field(default=None, max_length=500)
+
+
+class AuditLogResponse(BaseModel):
+    """审计记录。"""
+
+    audit_id: str
+    actor: str
+    actor_role: str
+    action: str
+    target_type: str | None = None
+    target_id: str | None = None
+    detail: dict | None = None
+    created_at: datetime
+
+
+class DecisionRequest(BaseModel):
+    """审批决定请求。"""
+
+    action: Literal["approve", "reject"]
+    comment: str | None = Field(default=None, max_length=500)
 
 
 class GraphOverviewResponse(BaseModel):

@@ -5,22 +5,27 @@ import json
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 from openai import OpenAIError
+from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_current_user
 from app.core.configuration import settings
-from app.db.tables import User
+from app.db.database import get_database_session
+from app.db.tables import Approval, User
 from app.models.api_models import (
     AnswerRequest,
     AnswerResponse,
     ChunkHit,
+    DecisionRequest,
     ModelListResponse,
 )
+from app.services.approval import decide_approval
 from app.services.chat import (
     answer_question,
     available_models,
     default_model,
     stream_answer,
 )
+from app.services.workflow import submit_decision
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
@@ -35,8 +40,9 @@ def list_models() -> ModelListResponse:
 def answer(
     payload: AnswerRequest,
     current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_database_session),
 ) -> AnswerResponse:
-    """检索当前角色可见的证据，并调用指定模型回答。"""
+    """检索当前角色可见的证据，并调用指定模型回答；高风险结论进审批。"""
     models = available_models()
     if not models:
         raise HTTPException(
@@ -56,6 +62,8 @@ def answer(
             current_user.role,
             model,
             payload.top_k or settings.top_k,
+            db,
+            current_user,
         )
     except OpenAIError as exc:
         raise HTTPException(
@@ -70,6 +78,7 @@ def answer(
         model=result["model"],
         hits=[ChunkHit(**hit) for hit in result["hits"]],
         graph_paths=result["graph_paths"],
+        approval=result.get("approval"),
     )
 
 
@@ -77,8 +86,9 @@ def answer(
 def answer_stream(
     payload: AnswerRequest,
     current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_database_session),
 ) -> StreamingResponse:
-    """用 SSE 返回检索证据、思考过程与逐字生成的回答。"""
+    """用 SSE 返回检索证据、思考过程与逐字生成的回答；高风险进审批不返回结论。"""
     models = available_models()
     if not models:
         raise HTTPException(
@@ -99,6 +109,8 @@ def answer_stream(
                 current_user.role,
                 model,
                 payload.top_k or settings.top_k,
+                db,
+                current_user,
             )
             for event in events:
                 yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
@@ -111,3 +123,23 @@ def answer_stream(
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
+
+
+@router.post("/decision/{approval_id}")
+def submit(
+    approval_id: str,
+    payload: DecisionRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_database_session),
+) -> dict:
+    """提交审批决定，更新审批单状态并唤醒等待中的 SSE 流。"""
+    approval = decide_approval(
+        db, approval_id, payload.action, payload.comment, current_user
+    )
+    if approval is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="审批单不存在、已处理或无权审批"
+        )
+    db.commit()
+    submit_decision(approval_id, payload.action, payload.comment)
+    return {"status": "ok", "action": payload.action}

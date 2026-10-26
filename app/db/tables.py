@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Integer, String
+from sqlalchemy import Boolean, DateTime, Integer, String, Text
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -67,3 +67,51 @@ class Document(Base):
         DateTime, default=now_local, nullable=False
     )
     ingested_at: Mapped[datetime | None] = mapped_column(DateTime)
+
+
+class Approval(Base):
+    """风险审批单：高风险结论先进审批台，批准前不对提交人展示。"""
+
+    __tablename__ = "approvals"
+
+    approval_id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=new_uuid
+    )
+    question: Mapped[str] = mapped_column(Text, nullable=False)
+    # 待审批的结论草稿，批准后才解锁给提交人
+    answer: Mapped[str] = mapped_column(Text, nullable=False)
+    risk_level: Mapped[str] = mapped_column(String(16), nullable=False)
+    reason: Mapped[str] = mapped_column(String(500), nullable=False)
+    submitted_by: Mapped[str] = mapped_column(String(128), nullable=False)
+    submitted_role: Mapped[str] = mapped_column(String(32), nullable=False)
+    status: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="pending"
+    )
+    decision_comment: Mapped[str | None] = mapped_column(String(500))
+    decided_by: Mapped[str | None] = mapped_column(String(128))
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime)
+    # 证据用 JSON 字符串整块保存，与向量检索/图谱接口的返回结构一致
+    hits: Mapped[str] = mapped_column(Text, nullable=False, default="[]")
+    graph_paths: Mapped[str] = mapped_column(Text, nullable=False, default="[]")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=now_local, nullable=False
+    )
+
+
+class AuditLog(Base):
+    """审计日志：只追加写入，记录谁在什么时间对什么对象做了什么。"""
+
+    __tablename__ = "audit_logs"
+
+    audit_id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=new_uuid
+    )
+    actor: Mapped[str] = mapped_column(String(128), nullable=False)
+    actor_role: Mapped[str] = mapped_column(String(32), nullable=False)
+    action: Mapped[str] = mapped_column(String(64), nullable=False)
+    target_type: Mapped[str | None] = mapped_column(String(32))
+    target_id: Mapped[str | None] = mapped_column(String(36))
+    detail: Mapped[str] = mapped_column(Text, nullable=False, default="{}")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=now_local, nullable=False
+    )

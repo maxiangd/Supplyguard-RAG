@@ -10,6 +10,7 @@ const messages = ref([])
 const citations = ref([])
 const graphPaths = ref([])
 const steps = ref([])
+const riskInfo = ref(null)
 const listRef = ref(null)
 
 const models = ref([])
@@ -95,6 +96,7 @@ async function ask() {
   question.value = ''
   citations.value = []
   graphPaths.value = []
+  riskInfo.value = null
   expandedCitations.value = []
   resetSteps()
   running.value = true
@@ -130,11 +132,22 @@ async function ask() {
           if (!openReasoning.value.includes(index)) {
             openReasoning.value = [...openReasoning.value, index]
           }
+        } else if (event.type === 'risk') {
+          riskInfo.value = {
+            level: event.level,
+            reason: event.reason,
+            approval_id: null,
+          }
+        } else if (event.type === 'approval') {
+          if (riskInfo.value) riskInfo.value.approval_id = event.approval_id
         } else if (event.type === 'delta') {
           reply.content += event.text
         } else if (event.type === 'done') {
           citations.value = event.hits
           graphPaths.value = event.graph_paths ?? []
+          if (event.approval_id && riskInfo.value) {
+            riskInfo.value.approval_id = event.approval_id
+          }
           setStep('answer', 'done', model)
         } else if (event.type === 'error') {
           streamError = event.detail
@@ -206,7 +219,15 @@ onMounted(loadModels)
                 </div>
               </div>
               <div
-                v-if="message.content || (message.role === 'assistant' && running)"
+                v-if="message.role === 'user' && message.content"
+                class="bubble"
+              >
+                {{ message.content }}
+              </div>
+              <div
+                v-else-if="
+                  message.role === 'assistant' && (message.content || running)
+                "
                 class="bubble"
               >
                 {{ message.content || '正在检索资料…' }}
@@ -272,6 +293,36 @@ onMounted(loadModels)
           :image-size="50"
           description="提问后显示执行进度"
         />
+      </el-card>
+
+      <el-card v-if="riskInfo" shadow="never" class="side risk-side">
+        <template #header>
+          风险评估
+          <el-tag
+            :type="riskInfo.level === 'HIGH' ? 'danger' : riskInfo.level === 'MEDIUM' ? 'warning' : 'info'"
+            size="small"
+            style="margin-left: 8px"
+          >
+            {{ riskInfo.level }}
+          </el-tag>
+        </template>
+        <div class="risk-reason">{{ riskInfo.reason }}</div>
+        <template v-if="riskInfo.level === 'HIGH'">
+          <div v-if="riskInfo.approval_id" class="risk-approval">
+            审批单号：{{ riskInfo.approval_id }}
+          </div>
+          <div v-else class="risk-approval risk-pending">
+            正在创建审批单…
+          </div>
+          <router-link to="/review">
+            <el-button type="primary" size="small" class="risk-action">
+              前往复核台处理
+            </el-button>
+          </router-link>
+        </template>
+        <div v-else class="risk-approval">
+          {{ riskInfo.level === 'MEDIUM' ? '已标记，可关注后续变化' : '低风险，无需处理' }}
+        </div>
       </el-card>
 
       <el-card shadow="never" class="side">
@@ -456,6 +507,31 @@ onMounted(loadModels)
   font-size: 12px;
   line-height: 1.7;
   white-space: pre-wrap;
+}
+
+.risk-side {
+  border-left: 3px solid #e6a23c;
+}
+
+.risk-reason {
+  color: #303133;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.risk-approval {
+  margin-top: 6px;
+  color: #909399;
+  font-size: 12px;
+}
+
+.risk-pending {
+  color: #e6a23c;
+}
+
+.risk-action {
+  margin-top: 12px;
+  width: 100%;
 }
 
 .composer {

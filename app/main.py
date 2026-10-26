@@ -6,6 +6,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 
+from app.api.routes.approvals import router as approvals_router
+from app.api.routes.audit import router as audit_router
 from app.api.routes.authentication import router as auth_router
 from app.api.routes.chat import router as chat_router
 from app.api.routes.documents import router as documents_router
@@ -56,6 +58,8 @@ def create_app() -> FastAPI:
     app.include_router(retrieval_router, prefix=settings.api_prefix)
     app.include_router(graph_router, prefix=settings.api_prefix)
     app.include_router(chat_router, prefix=settings.api_prefix)
+    app.include_router(approvals_router, prefix=settings.api_prefix)
+    app.include_router(audit_router, prefix=settings.api_prefix)
 
     @app.get("/api/health/live", tags=["health"])
     def liveness_check() -> dict:
