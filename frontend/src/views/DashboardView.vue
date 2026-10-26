@@ -1,7 +1,7 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { fetchDashboard } from '../api/mock'
+import { fetchDashboard } from '../api/dashboard'
 
 const router = useRouter()
 const loading = ref(true)

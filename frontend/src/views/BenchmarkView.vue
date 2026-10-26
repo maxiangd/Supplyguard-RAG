@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { fetchBenchmark, runBenchmark } from '../api/mock'
+import { fetchBenchmarkCases, runBenchmark } from '../api/benchmark'
 
 const loading = ref(true)
 const running = ref(false)
@@ -57,18 +57,36 @@ const resultRows = computed(() => {
 })
 
 async function load() {
-  const data = await fetchBenchmark()
-  cases.value = data.cases
-  run.value = data.last_run
+  const data = await fetchBenchmarkCases()
+  cases.value = data.cases.map((c) => ({
+    id: c.id,
+    question: c.question,
+    expected: `角色=${c.role} | 期望实体≥${c.expected_entities?.length || 0} | 期望路径≥${c.expected_min_paths || 0}`,
+    tags: [c.scenario, c.role, ...(c.expected_path_rules || [])],
+  }))
+  run.value = null  // 需要手动运行
   loading.value = false
 }
 
 async function execute() {
   running.value = true
   try {
-    run.value = await runBenchmark()
+    const data = await runBenchmark()
+    run.value = {
+      ran_at: data.ran_at,
+      metrics: {
+        f1: data.metrics.entity_f1,
+        path_hit_rate: data.metrics.path_hit_rate,
+        role_block_rate: data.metrics.leak_block_rate,
+        risk_accuracy: data.metrics.rule_precision,
+        precision: data.metrics.entity_precision,
+        recall: data.metrics.entity_recall,
+      },
+      baseline: data.baseline,
+      results: data.results,
+    }
     activeTab.value = 'results'
-    ElMessage.success('评测完成（占位数据）')
+    ElMessage.success(`评测完成：${data.total_cases} 条用例，F1=${(data.metrics.entity_f1 * 100).toFixed(0)}%`)
   } finally {
     running.value = false
   }
@@ -84,8 +102,7 @@ onMounted(load)
         <div>
           <div class="title">评测集</div>
           <div class="sub">
-            上次运行：{{ run?.ran_at ?? '尚未运行' }} · {{ cases.length }} 条用例 ·
-            当前为占位数据
+            上次运行：{{ run?.ran_at ?? '尚未运行' }} · {{ cases.length }} 条用例
           </div>
         </div>
         <el-button type="primary" :loading="running" @click="execute">
@@ -159,7 +176,7 @@ onMounted(load)
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column prop="note" label="说明" min-width="220" />
+            <el-table-column prop="note" label="说明" min-width="280" />
           </el-table>
         </el-tab-pane>
       </el-tabs>

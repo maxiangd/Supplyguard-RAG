@@ -9,7 +9,9 @@ from loguru import logger
 from app.api.routes.approvals import router as approvals_router
 from app.api.routes.audit import router as audit_router
 from app.api.routes.authentication import router as auth_router
+from app.api.routes.benchmark import router as benchmark_router
 from app.api.routes.chat import router as chat_router
+from app.api.routes.dashboard import router as dashboard_router
 from app.api.routes.documents import router as documents_router
 from app.api.routes.graph import router as graph_router
 from app.api.routes.memory import router as memory_router
@@ -62,6 +64,8 @@ def create_app() -> FastAPI:
     app.include_router(approvals_router, prefix=settings.api_prefix)
     app.include_router(audit_router, prefix=settings.api_prefix)
     app.include_router(memory_router, prefix=settings.api_prefix)
+    app.include_router(benchmark_router, prefix=settings.api_prefix)
+    app.include_router(dashboard_router, prefix=settings.api_prefix)
 
     @app.get("/api/health/live", tags=["health"])
     def liveness_check() -> dict:

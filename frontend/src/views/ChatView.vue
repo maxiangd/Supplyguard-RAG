@@ -320,8 +320,6 @@ async function doClearSession() {
         />
       </el-card>
 
-      <el-card v-if="riskInfo" shadow="never" class="side risk-side">
-
       <el-card v-if="sessionHistory.length" shadow="never" class="side">
         <template #header>
           会话历史
